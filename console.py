@@ -5,6 +5,7 @@ Ported nigh-verbatim from a similar file I use for node
 import os
 import time as sysTime
 
+
 class colors:
     END = "\033[0m"
     BRIGHT = "\033[1m"
@@ -28,35 +29,60 @@ class colors:
     DK_CYAN = "\033[46m"
     DK_WHITE = "\033[47m"
 
+
 timers = {}
+
 
 def fmt(iterable):
     return " ".join(str(i) for i in iterable)
+
+
 def h1(*args):
     print(colors.BRIGHT, fmt(args), colors.END)
+
+
 def wait(*args):
     input(colors.BLUE + fmt(args) + colors.END)
+
+
 def log(*args):
     print(colors.YELLOW, fmt(args), colors.END)
+
+
 def info(*args):
     print(colors.DIM + "\t", fmt(args), colors.END)
+
+
 def debug(*args):
     print(colors.DK_BLUE + "\t", fmt(args), colors.END)
+
+
 def warn(*args):
-    print(colors.DK_CYAN + "WARN:\t" + colors.END + colors.CYAN, fmt(args), colors.END)
+    print(colors.DK_CYAN + "WARN:\t" + colors.END +
+          colors.CYAN, fmt(args), colors.END)
+
+
 def error(*args):
-    print(colors.DK_RED + colors.BLINK + "ERROR:\t" + colors.END + colors.RED, fmt(args), colors.END)
+    print(colors.DK_RED + colors.BLINK + "ERROR:\t" +
+          colors.END + colors.RED, fmt(args), colors.END)
+
+
 def time(key):
     timers[key] = sysTime.time()
+
+
 def timeEnd(key):
     if key in timers:
         t = sysTime.time() - timers[key]
-        print("\t" + str(t) + colors.DIM  + " s \t" + key + colors.END)
+        print("\t" + str(t) + colors.DIM + " s \t" + key + colors.END)
         del timers[key]
+
+
 def notify(*args):
     # Play bell
     print('\a')
-    # Attempt to send a notification (will fail, but not crash, if not on macOS)
+    # Attempt to send a notification
+    # (will fail, but not crash, if not on macOS)
     os.system("""
           osascript -e 'display notification "{}" with title "{}"'
           """.format(args[0], fmt(args[1:])))
