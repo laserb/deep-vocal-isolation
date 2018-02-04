@@ -18,12 +18,14 @@ import argparse
 import random
 import string
 import os
+import datetime
 
 import numpy as np
 from keras.layers import Input, Conv2D, BatchNormalization, \
         UpSampling2D, Concatenate
 from keras.models import Model
 from keras.utils import plot_model
+from keras.callbacks import ModelCheckpoint, TensorBoard
 
 import console
 import conversion
@@ -79,8 +81,14 @@ class AcapellaBot:
         while epochs > 0:
             console.log("Training for", epochs, "epochs on",
                         len(xTrain), "examples")
+            date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            checkpointer = ModelCheckpoint(filepath='./weights.hdf5',
+                                           verbose=1,
+                                           save_best_only=True)
+            tensor_board = TensorBoard(log_dir=f"./logs/{date}")
             self.model.fit(xTrain, yTrain, batch_size=batch,
-                           epochs=epochs, validation_data=(xValid, yValid))
+                           epochs=epochs, validation_data=(xValid, yValid),
+                           callbacks=[checkpointer, tensor_board])
             console.notify(str(epochs) + " Epochs Complete!",
                            "Training on", data.inPath, "with size", batch)
             while True:
