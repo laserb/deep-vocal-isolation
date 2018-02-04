@@ -95,7 +95,7 @@ def saveSpectrogram(spectrogram, filePath):
 
 def fileSuffix(title, **kwargs):
     args = "".join(sorted([", " + i + "=" + str(kwargs[i]) for i in kwargs]))
-    return f" ({title}{args})"
+    return " ({}{})".format(title, args)
 
 
 def handleAudio(filePath, args):

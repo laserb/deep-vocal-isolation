@@ -85,7 +85,7 @@ class AcapellaBot:
             checkpointer = ModelCheckpoint(filepath='./weights.hdf5',
                                            verbose=1,
                                            save_best_only=True)
-            tensor_board = TensorBoard(log_dir=f"./logs/{date}")
+            tensor_board = TensorBoard(log_dir="./logs/{}".format(date))
             self.model.fit(xTrain, yTrain, batch_size=batch,
                            epochs=epochs, validation_data=(xValid, yValid),
                            callbacks=[checkpointer, tensor_board])
