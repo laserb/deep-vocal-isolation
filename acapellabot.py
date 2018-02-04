@@ -109,7 +109,7 @@ class AcapellaBot:
         conversion.saveAudioFile(newAudio, outputFileNameBase + ".wav", sampleRate)
         conversion.saveSpectrogram(newSpectrogram, outputFileNameBase + ".png")
         conversion.saveSpectrogram(spectrogram, os.path.join(pathParts[0], fileNameParts[0]) + ".png")
-        console.log("Vocal isolation complete 👌")
+        console.log("Vocal isolation complete")
 
 if __name__ == "__main__":
     # if data folder is specified, create a new data object and train on the data
