@@ -187,6 +187,7 @@ if __name__ == "__main__":
             acapellabot.loadWeights(args.weights)
         console.h1("Loading Data")
         data = Data(args.data, args.fft, args.split)
+        data.save()
         console.h1("Training Model")
         acapellabot.train(data, args.epochs, args.batch)
         acapellabot.saveWeights(args.weights)

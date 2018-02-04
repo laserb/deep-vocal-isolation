@@ -67,7 +67,7 @@ class Data:
 
     def load(self, saveDataAsH5=False):
         def checkFilename(f):
-            return (f.endswith(".mp3") or f.endswith(".wav")) \
+            return (f.endswith(".mp3") or f.endswith("_all.wav")) \
                 and not f.startswith(".")
 
         h5Path = os.path.join(self.inPath, "data.h5")
@@ -76,78 +76,47 @@ class Data:
             self.x = h5f["x"][:]
             self.y = h5f["y"][:]
         else:
-            acapellas = {}
-            instrumentals = {}
-            # Hash bins for each camelot key so we can merge
-            # in the future, this should be a generator
-            # w/ yields in order to eat less memory
-            for i in range(NUMBER_OF_KEYS):
-                key = i + 1
-                acapellas[key] = []
-                instrumentals[key] = []
             for dirPath, dirNames, fileNames in os.walk(self.inPath):
                 filteredFiles = filter(checkFilename, fileNames)
                 for fileName in filteredFiles:
-                    key = keyOfFile(fileName)
-                    if key:
-                        targetPathMap = acapellas if fileIsAcapella(
-                            fileName) else instrumentals
-                        tag = "[Acapella]" if fileIsAcapella(
-                            fileName) else "[Instrumental]"
-                        audio, sampleRate = conversion.loadAudioFile(
-                            os.path.join(self.inPath, fileName))
-                        spectrogram, phase = conversion.audioFileToSpectrogram(
-                            audio, self.fftWindowSize)
-                        targetPathMap[key].append(spectrogram)
-                        console.info(tag, "Created spectrogram for", fileName,
-                                     "in key", key, "with shape",
-                                     spectrogram.shape)
-            # Merge mashups
-            for k in range(NUMBER_OF_KEYS):
-                acapellasInKey = acapellas[k + 1]
-                instrumentalsInKey = instrumentals[k + 1]
-                count = 0
-                for acapella in acapellasInKey:
-                    for instrumental in instrumentalsInKey:
-                        # Pad if smaller
-                        instrumental_x = instrumental.shape[0]
-                        instrumental_y = instrumental.shape[1]
-                        acapella_x = acapella.shape[0]
-                        acapella_y = acapella.shape[1]
-                        if (instrumental_y < acapella_y):
-                            newInstrumental = np.zeros(acapella.shape)
-                            newInstrumental[:instrumental_x,
-                                            :instrumental_y] = instrumental
-                            instrumental = newInstrumental
-                        elif (acapella_y < instrumental_y):
-                            newAcapella = np.zeros(instrumental.shape)
-                            newAcapella[:acapella_x,
-                                        :acapella_y] = acapella
-                            acapella = newAcapella
-                        # simulate a limiter/low mixing
-                        # (loses info, but that's the point)
-                        # I've tested this against making the same mashups
-                        # in Logic and it's pretty close
-                        mashup = np.maximum(acapella, instrumental)
-                        # chop into slices
-                        # so everything's the same size in a batch
-                        dim = SLICE_SIZE
-                        mashupSlices = chop(mashup, dim)
-                        acapellaSlices = chop(acapella, dim)
-                        count += 1
-                        self.x.extend(mashupSlices)
-                        self.y.extend(acapellaSlices)
-                console.info("Created", count, "mashups for key",
-                             k, "with", len(self.x), "total slices so far")
+                    acapella_file = fileName.replace("_all.wav",
+                                                     "_acapella.wav")
+                    if not os.path.exists(os.path.join(self.inPath,
+                                                       acapella_file)):
+                        continue
+                    audio, sampleRate = conversion.loadAudioFile(
+                        os.path.join(self.inPath, fileName))
+                    spectrogram, phase = conversion.audioFileToSpectrogram(
+                        audio, self.fftWindowSize)
+                    mashup = spectrogram
+
+                    audio, sampleRate = conversion.loadAudioFile(
+                        os.path.join(self.inPath, acapella_file))
+                    spectrogram, phase = conversion.audioFileToSpectrogram(
+                        audio, self.fftWindowSize)
+                    acapella = spectrogram
+
+                    console.info("Created spectrogram for", fileName,
+                                 "with shape",
+                                 spectrogram.shape)
+                    mashupSlices = chop(mashup, SLICE_SIZE)
+                    acapellaSlices = chop(acapella, SLICE_SIZE)
+                    self.x.extend(mashupSlices)
+                    self.y.extend(acapellaSlices)
+            console.info("Created", len(self.x), "total slices so far")
             # Add a "channels" channel to please the network
             self.x = np.array(self.x)[:, :, :, np.newaxis]
             self.y = np.array(self.y)[:, :, :, np.newaxis]
             # Save to file if asked
             if saveDataAsH5:
-                h5f = h5py.File(h5Path, "w")
-                h5f.create_dataset("x", data=self.x)
-                h5f.create_dataset("y", data=self.y)
-                h5f.close()
+                self.save()
+
+    def save(self):
+        h5Path = os.path.join(self.inPath, "data.h5")
+        h5f = h5py.File(h5Path, "w")
+        h5f.create_dataset("x", data=self.x)
+        h5f.create_dataset("y", data=self.y)
+        h5f.close()
 
 
 if __name__ == "__main__":
