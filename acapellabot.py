@@ -18,6 +18,7 @@ import os
 import numpy as np
 from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, UpSampling2D, Concatenate
 from keras.models import Model
+from keras.utils import plot_model
 
 import console
 import conversion
@@ -55,6 +56,8 @@ class AcapellaBot:
         m = Model(inputs=mashup, outputs=acapella)
         console.log("Model has", m.count_params(), "params")
         m.compile(loss='mean_squared_error', optimizer='adam')
+        m.summary()
+        plot_model(m, to_file='model.png', show_shapes=True)
         self.model = m
         # need to know so that we can avoid rounding errors with spectrogram
         # this should represent how much the input gets downscaled
