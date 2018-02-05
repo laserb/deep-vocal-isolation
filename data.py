@@ -123,8 +123,19 @@ if __name__ == "__main__":
     # Simple testing code to use while developing
     console.h1("Loading Data")
     d = Data(sys.argv[1], 1536)
+    d.save()
     console.h1("Writing Sample Data")
-    conversion.saveSpectrogram(d.x[0], "x_sample_0.png")
-    conversion.saveSpectrogram(d.y[0], "y_sample_0.png")
-    audio = conversion.spectrogramToAudioFile(d.x[0], 1536)
-    conversion.saveAudioFile(audio, "x_sample.wav", 22050)
+    if not os.path.exists("sample"):
+        os.mkdir("sample")
+    n = 5
+    if len(sys.argv) > 2:
+        n = int(sys.argv[2])
+    for i in range(n):
+        conversion.saveSpectrogram(d.x[i].squeeze(),
+                                   "sample/x_sample_{}.png".format(i))
+        conversion.saveSpectrogram(d.y[i].squeeze(),
+                                   "sample/y_sample_{}.png".format(i))
+        audio = conversion.spectrogramToAudioFile(d.x[i].squeeze(), 1536)
+        conversion.saveAudioFile(audio,
+                                 "sample/x_sample_{}.wav".format(i),
+                                 22050)
