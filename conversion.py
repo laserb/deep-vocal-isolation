@@ -5,6 +5,7 @@ import skimage.io as io
 from os.path import basename
 from math import ceil
 import argparse
+from matplotlib.cm import get_cmap
 import console
 
 
@@ -80,6 +81,7 @@ def loadSpectrogram(filePath):
 
 
 def saveSpectrogram(spectrogram, filePath):
+    cm_hot = get_cmap('magma')
     spectrum = spectrogram
     console.info("Range of spectrum is " +
                  str(np.min(spectrum)) + " -> " + str(np.max(spectrum)))
@@ -88,6 +90,7 @@ def saveSpectrogram(spectrogram, filePath):
     console.info("Shape of spectrum is", image.shape)
     # Low-contrast image warnings are not helpful, tyvm
     with warnings.catch_warnings():
+        image = cm_hot(image)
         warnings.simplefilter("ignore")
         io.imsave(filePath, image)
     console.log("Saved image to", filePath)
