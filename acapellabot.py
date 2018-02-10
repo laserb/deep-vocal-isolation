@@ -142,22 +142,48 @@ class AcapellaBot:
                                               :spectrogram.shape[1]]
         console.log("Processed spectrogram; reconverting to audio")
 
+        # save original spectrogram as image
+        pathParts = os.path.split(path)
+        fileNameParts = os.path.splitext(pathParts[1])
+        conversion.saveSpectrogram(spectrogram, os.path.join(
+            pathParts[0], fileNameParts[0]) + ".png")
+
+        # save network output
+        self.saveAudio(newSpectrogram,
+                       fftWindowSize,
+                       phaseIterations,
+                       sampleRate,
+                       path,
+                       vocal=True)
+
+        # save difference
+        self.saveAudio(spectrogram - newSpectrogram,
+                       fftWindowSize,
+                       phaseIterations,
+                       sampleRate,
+                       path,
+                       vocal=False)
+
+        console.log("Vocal isolation complete")
+
+    def saveAudio(self, spectrogram, fftWindowSize,
+                  phaseIterations, sampleRate,
+                  path, vocal=True):
+        part = "_vocal" if vocal else "_instrumental"
         newAudio = conversion.spectrogramToAudioFile(
-                newSpectrogram,
+                spectrogram,
                 fftWindowSize=fftWindowSize,
                 phaseIterations=phaseIterations)
         pathParts = os.path.split(path)
         fileNameParts = os.path.splitext(pathParts[1])
         outputFileNameBase = os.path.join(
-            pathParts[0], fileNameParts[0] + "_acapella")
-        console.log("Converted to audio; writing to", outputFileNameBase)
+            pathParts[0], fileNameParts[0] + part)
+        console.log("Converted to audio; writing to",
+                    outputFileNameBase + ".wav")
 
         conversion.saveAudioFile(
             newAudio, outputFileNameBase + ".wav", sampleRate)
-        conversion.saveSpectrogram(newSpectrogram, outputFileNameBase + ".png")
-        conversion.saveSpectrogram(spectrogram, os.path.join(
-            pathParts[0], fileNameParts[0]) + ".png")
-        console.log("Vocal isolation complete")
+        conversion.saveSpectrogram(spectrogram, outputFileNameBase + ".png")
 
 
 if __name__ == "__main__":
