@@ -65,7 +65,7 @@ class Data:
         return (self.x[int(len(self.x) * self.trainingSplit):],
                 self.y[int(len(self.y) * self.trainingSplit):])
 
-    def load(self, saveDataAsH5=False):
+    def load(self, saveDataAsH5=True):
         def checkFilename(f):
             return (f.endswith(".mp3") or f.endswith("_all.wav")) \
                 and not f.startswith(".")
@@ -107,7 +107,7 @@ class Data:
             # Add a "channels" channel to please the network
             self.x = np.array(self.x)[:, :, :, np.newaxis]
             self.y = np.array(self.y)[:, :, :, np.newaxis]
-            # Save to file if asked
+            # Save to file
             if saveDataAsH5:
                 self.save()
 
@@ -123,7 +123,6 @@ if __name__ == "__main__":
     # Simple testing code to use while developing
     console.h1("Loading Data")
     d = Data(sys.argv[1], 1536)
-    d.save()
     console.h1("Writing Sample Data")
     if not os.path.exists("sample"):
         os.mkdir("sample")
