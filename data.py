@@ -49,13 +49,14 @@ def chop(matrix, scale):
 
 
 class Data:
-    def __init__(self, inPath, fftWindowSize=1536, trainingSplit=0.9):
-        self.inPath = inPath
-        self.fftWindowSize = fftWindowSize
-        self.trainingSplit = trainingSplit
+    def __init__(self):
+        self.config = Config()
+        self.inPath = self.config.data
+        self.fftWindowSize = self.config.fft
+        self.trainingSplit = self.config.split
+        self.instrumental = self.config.instrumental
         self.x = []
         self.y = []
-        self.config = Config()
         self.load()
 
     def train(self):
@@ -66,12 +67,19 @@ class Data:
         return (self.x[int(len(self.x) * self.trainingSplit):],
                 self.y[int(len(self.y) * self.trainingSplit):])
 
+    def get_data_path(self):
+        if self.instrumental:
+            filename = "data_instrumental.h5"
+        else:
+            filename = "data_acapella.h5"
+        return os.path.join(self.inPath, filename)
+
     def load(self, saveDataAsH5=True):
         def checkFilename(f):
             return (f.endswith(".mp3") or f.endswith("_all.wav")) \
                 and not f.startswith(".")
 
-        h5Path = os.path.join(self.inPath, "data.h5")
+        h5Path = os.path.join(self.inPath, self.get_data_path())
         if os.path.isfile(h5Path):
             h5f = h5py.File(h5Path, "r")
             self.x = h5f["x"][:]
@@ -80,8 +88,12 @@ class Data:
             for dirPath, dirNames, fileNames in os.walk(self.inPath):
                 filteredFiles = filter(checkFilename, fileNames)
                 for fileName in filteredFiles:
-                    acapella_file = fileName.replace("_all.wav",
-                                                     "_acapella.wav")
+                    if self.instrumental:
+                        acapella_file = fileName.replace("_all.wav",
+                                                         "_instrumental.wav")
+                    else:
+                        acapella_file = fileName.replace("_all.wav",
+                                                         "_acapella.wav")
                     if not os.path.exists(os.path.join(self.inPath,
                                                        acapella_file)):
                         continue
@@ -113,7 +125,7 @@ class Data:
                 self.save()
 
     def save(self):
-        h5Path = os.path.join(self.inPath, "data.h5")
+        h5Path = os.path.join(self.inPath, self.get_data_path())
         h5f = h5py.File(h5Path, "w")
         h5f.create_dataset("x", data=self.x)
         h5f.create_dataset("y", data=self.y)
@@ -123,7 +135,7 @@ class Data:
 if __name__ == "__main__":
     # Simple testing code to use while developing
     console.h1("Loading Data")
-    d = Data(sys.argv[1], 1536)
+    d = Data()
     console.h1("Writing Sample Data")
     if not os.path.exists("sample"):
         os.mkdir("sample")

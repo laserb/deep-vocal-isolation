@@ -3,6 +3,7 @@ export BATCH=8
 export DATA=../bot_data
 export EPOCHS=10
 export FFT=1536
+export INSTRUMENTAL=False
 export LOAD=False
 export LOGS=./logs
 export PHASE=10

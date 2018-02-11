@@ -36,7 +36,8 @@ from config import Config
 
 
 class AcapellaBot:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         mashup = Input(shape=(None, None, 1), name='input')
         convA = Conv2D(64, 3, activation='relu', padding='same')(mashup)
         conv = Conv2D(64, 4, strides=2, activation='relu',
@@ -93,7 +94,8 @@ class AcapellaBot:
             checkpointer = ModelCheckpoint(filepath='./weights.hdf5',
                                            verbose=1,
                                            save_best_only=True)
-            tensor_board = TensorBoard(log_dir=self.logPath + "/{}".format(date))
+            tensor_board = TensorBoard(log_dir=self.config.logPath +
+                                       "/{}".format(date))
             self.model.fit(xTrain, yTrain, batch_size=batch,
                            initial_epoch=start_epoch, epochs=end_epoch,
                            validation_data=(xValid, yValid),
@@ -102,7 +104,7 @@ class AcapellaBot:
                            "Training on", data.inPath, "with size", batch)
 
             start_epoch += epochs
-            if self.quit:
+            if self.config.quit:
                 break
             else:
                 while True:
@@ -160,7 +162,7 @@ class AcapellaBot:
                        phaseIterations,
                        sampleRate,
                        path,
-                       vocal=True)
+                       vocal=not self.config.instrumental)
 
         # save difference
         self.saveAudio(spectrogram - newSpectrogram,
@@ -168,7 +170,7 @@ class AcapellaBot:
                        phaseIterations,
                        sampleRate,
                        path,
-                       vocal=False)
+                       vocal=self.config.instrumental)
 
         console.log("Vocal isolation complete")
 
@@ -201,10 +203,7 @@ if __name__ == "__main__":
     with open("./envs/last", "w") as f:
         f.write(config_str)
 
-    acapellabot = AcapellaBot()
-
-    acapellabot.logPath = config.logs
-    acapellabot.quit = config.quit
+    acapellabot = AcapellaBot(config)
 
     if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
@@ -213,7 +212,7 @@ if __name__ == "__main__":
             console.h1("Loading Weights")
             acapellabot.loadWeights(config.weights)
         console.h1("Loading Data")
-        data = Data(config.data, config.fft, config.split)
+        data = Data()
         console.h1("Training Model")
         acapellabot.train(data, config.epochs,
                           config.batch, config.start_epoch)
