@@ -24,6 +24,8 @@ class Config(object):
         self.logs = self.get("LOGS", "./logs")
         # Phase iterations for reconstruction
         self.phase = self.get_int("PHASE", 10)
+        # quit after training for specified epochs
+        self.quit = self.get_bool("QUIT", True)
         # Load previous weights file before starting
         self.load = self.get_bool("LOAD", False)
         # size of spectrogram slices to use

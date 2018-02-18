@@ -6,6 +6,7 @@ export FFT=1536
 export LOAD=False
 export LOGS=./logs
 export PHASE=10
+export QUIT=True
 export SLICE_SIZE=128
 export SPLIT=0.9
 export START_EPOCH=0
