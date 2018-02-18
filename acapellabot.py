@@ -81,10 +81,11 @@ class AcapellaBot:
     def mean_pred(self, y_true, y_pred):
         return K.mean(y_pred)
 
-    def train(self, data, epochs, batch=8):
+    def train(self, data, epochs, batch=8, start_epoch=0):
         xTrain, yTrain = data.train()
         xValid, yValid = data.valid()
         while epochs > 0:
+            end_epoch = start_epoch + epochs
             console.log("Training for", epochs, "epochs on",
                         len(xTrain), "examples")
             date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
@@ -93,10 +94,12 @@ class AcapellaBot:
                                            save_best_only=True)
             tensor_board = TensorBoard(log_dir="./logs/{}".format(date))
             self.model.fit(xTrain, yTrain, batch_size=batch,
-                           epochs=epochs, validation_data=(xValid, yValid),
+                           initial_epoch=start_epoch, epochs=end_epoch,
+                           validation_data=(xValid, yValid),
                            callbacks=[checkpointer, tensor_board])
             console.notify(str(epochs) + " Epochs Complete!",
                            "Training on", data.inPath, "with size", batch)
+            start_epoch += epochs
             while True:
                 try:
                     epochs = int(
@@ -171,6 +174,8 @@ if __name__ == "__main__":
                         help="Proportion of the data to train on")
     parser.add_argument("--epochs", default=10, type=int,
                         help="Number of epochs to train.")
+    parser.add_argument("--start-epoch", default=0, type=int,
+                        help="First epoch number.")
     parser.add_argument("--weights", default="weights.h5",
                         type=str, help="h5 file to read/write weights to")
     parser.add_argument("--batch", default=8, type=int,
@@ -195,7 +200,7 @@ if __name__ == "__main__":
         data = Data(args.data, args.fft, args.split)
         data.save()
         console.h1("Training Model")
-        acapellabot.train(data, args.epochs, args.batch)
+        acapellabot.train(data, args.epochs, args.batch, args.start_epoch)
         acapellabot.saveWeights(args.weights)
     elif len(args.files) > 0:
         console.log("Weights provided; performing inference on " +
