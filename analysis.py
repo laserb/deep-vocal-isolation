@@ -1,207 +1,270 @@
 import conversion
-import argparse
 import os
-import h5py
 import numpy as np
-from data import chop
+from config import Config
+from keras.models import Model
+import sys
+from keras.layers import Input, Conv2D
+from keras.initializers import Ones, Zeros
+import h5py
+from chopper import Chopper
 
-
-BATCH_NORMALIZATION_INDEX = "batch_normalization_{}"
-CONV2D_INDEX = "conv2d_{}"
+BATCH_NORMALIZATIONINDEX = "batch_normalization_{}"
+CONV2DINDEX = "conv2d_{}"
 
 BATCH_LAYERS = 4
 CONV2D_LAYERS = 12
 
 
-def analyse_slices(filePath):
-    spectrogram = create_spectrogram_from_file(filePath)
-    curr_min = float("inf")
-    curr_min_i = -1
-    curr_max = 0
-    curr_max_i = 1
+class Analysis:
+    def __init__(self):
+        self.config = Config()
+        self.analyse = self.config.analysis
 
-    slices = chop(spectrogram, 128)
-    for i in range(0, len(slices)):
-        smin = np.min(slices[i])
-        smax = np.max(slices[i])
-        if smin < curr_min:
-            curr_min = smin
-            curr_min_i = i
-        if smax > curr_max:
-            curr_max = smax
-            curr_max_i = i
+    def get(self):
+        return getattr(self, self.analyse)
 
-    print("Minimum at %d with %f" % (curr_min_i, curr_min))
-    print("Maximum at %d with %f" % (curr_max_i, curr_max))
-    mean_dev = np.sum(slices)/(len(slices) * np.prod(slices[0].shape))
-    print("Mean deviation %f" % mean_dev)
-    count_dev_sum = 0
-    count_dev_max = 0
-    for slice in slices:
-        if np.sum(slice)/np.prod(slice.shape) > mean_dev:
-            count_dev_sum += 1
-        if np.max(slice) > mean_dev:
-            count_dev_max += 1
-    print("Count sum above mean deviation is %d of %d"
-          % (count_dev_sum, len(slices)))
-    print("Count max above mean deviation is %d of %d"
-          % (count_dev_max, len(slices)))
+    def slices(self, filePath):
+        spectrogram = self.create_spectrogram_from_file(filePath)
+        currMin = float("inf")
+        currMinI = -1
+        currMax = 0
+        currMaxI = 1
 
+        chop = Chopper.get()
 
-def analyse_spectrogram(filePath):
-    spectrogram = create_spectrogram_from_file(filePath)
-    conversion.saveSpectrogram(spectrogram,
-                               filePath.replace(".wav", "_spectrogram.png"))
+        slices = chop(spectrogram, self.config.slice_size)
+        for i in range(0, len(slices)):
+            smin = np.min(slices[i])
+            smax = np.max(slices[i])
+            if smin < currMin:
+                currMin = smin
+                currMinI = i
+            if smax > currMax:
+                currMax = smax
+                currMaxI = i
 
+        print("Minimum at %d with %f" % (currMinI, currMin))
+        print("Maximum at %d with %f" % (currMaxI, currMax))
+        meanDev = np.sum(slices) / (len(slices) * np.prod(slices[0].shape))
+        print("Mean deviation %f" % meanDev)
+        countDevSum = 0
+        countDevMax = 0
 
-def analyse_weights(directory):
-    weights = read_weights_from_dir(directory)
+        for slice in slices:
+            if np.sum(slice) / np.prod(slice.shape) > meanDev:
+                countDevSum += 1
+            if np.max(slice) > meanDev:
+                countDevMax += 1
+        print("Count sum above mean deviation is %d of %d"
+              % (countDevSum, len(slices)))
+        print("Count max above mean deviation is %d of %d"
+              % (countDevMax, len(slices)))
 
-    for i in range(0, len(weights)-1):
-        print("\nComparing weights of epoch %d with epoch %d\n" % (i+1, i+2))
-        beta_dev, gamma_dev, moving_mean_dev, moving_var_dev \
-            = compare_batch_normalization(weights[i], weights[i+1])
-        bias_dev, kernel_dev = compare_conv2d(weights[i], weights[i+1])
+    def spectrograms(self, directory, saveToFile=False):
 
-        print("Epochs %d to %d: Batch normalization mean deviation: "
-              "beta=%f, gamma=%f, moving mean=%f moving variance=%f"
-              % (i+1, i+2, beta_dev, gamma_dev,
-                 moving_mean_dev, moving_var_dev))
-        print("Epochs %d to %d: Conv2d mean deviation: bias=%f, kernel=%f"
-              % (i+1, i+2, bias_dev, kernel_dev))
+        audio_files = self.read_audio_files_from_dir(directory)
 
+        upper_count = 0
+        cente_count = 0
+        lower_count = 0
 
-def compare_batch_normalization(weight1, weight2):
-    mean_dev_beta = []
-    mean_dev_gamma = []
-    mean_dev_mov_mean = []
-    mean_dev_mov_var = []
-    for i in range(1, BATCH_LAYERS+1):
-        (beta1, gamma1, moving_mean1, moving_variance1) \
-            = get_batch_normalization_data(1, weight1)
-        (beta2, gamma2, moving_mean2, moving_variance2) \
-            = get_batch_normalization_data(1, weight2)
-        beta_diff = np.sum(abs(np.subtract(beta1, beta2)))/beta1.shape[0]
-        gamma_diff = np.sum(abs(np.subtract(gamma1, gamma2)))/gamma1.shape[0]
-        moving_mean_diff \
-            = np.sum(abs(np.subtract(moving_mean1, moving_mean2))) / \
-            moving_mean1.shape[0]
-        moving_variance_diff \
-            = np.sum(abs(np.subtract(moving_variance1, moving_variance2))) / \
-            moving_variance1.shape[0]
-        mean_dev_beta.append(beta_diff)
-        mean_dev_gamma.append(gamma_diff)
-        mean_dev_mov_mean.append(moving_mean_diff)
-        mean_dev_mov_var.append(moving_variance_diff)
-        print("  Mean deviation for batch normalization layer %d: "
-              "beta=%f, gamma=%f, moving mean=%f, moving variance=%f"
-              % (i, beta_diff, gamma_diff,
-                 moving_mean_diff, moving_variance_diff))
+        # if saveToFile:
+        #    conversion.saveSpectrogram(spectrogram,
+        #               filePath.replace(".wav", "Spectrogram.png"))
 
-    beta_dev = np.sum(mean_dev_beta)/len(mean_dev_beta)
-    gamma_dev = np.sum(mean_dev_gamma)/len(mean_dev_gamma)
-    moving_mean_dev = np.sum(mean_dev_mov_mean)/len(mean_dev_mov_mean)
-    moving_var_dev = np.sum(mean_dev_mov_var)/len(mean_dev_mov_var)
+    def weights(self, directory):
+        weights = self.read_weights_from_dir(directory)
 
-    return beta_dev, gamma_dev, moving_mean_dev, moving_var_dev
+        for i in range(0, len(weights) - 1):
+            print("\nComparing weights of epoch %d with epoch %d\n"
+                  % (i + 1, i + 2))
+            betaDev, gammaDev, movingMeanDev, movingVarDev \
+                = self.compare_batch_normalization(weights[i], weights[i + 1])
+            biasDev, kernelDev \
+                = self.compare_conv2d(weights[i], weights[i + 1])
 
+            print("Epochs %d to %d: Batch normalization mean deviation: "
+                  "beta=%f, gamma=%f, moving mean=%f moving variance=%f"
+                  % (i + 1, i + 2, betaDev, gammaDev,
+                     movingMeanDev, movingVarDev))
+            print("Epochs %d to %d: Conv2d mean deviation: bias=%f, kernel=%f"
+                  % (i + 1, i + 2, biasDev, kernelDev))
 
-def compare_conv2d(weight1, weight2):
-    mean_dev_bias = []
-    mean_dev_kernel = []
-    for i in range(1, CONV2D_LAYERS+1):
-        (bias1, kernel1) = get_conv2d_layer_data(1, weight1)
-        (bias2, kernel2) = get_conv2d_layer_data(1, weight2)
-        bias_diff = np.sum(abs(np.subtract(bias1, bias2)))/bias1.shape[0]
-        kernel_diff = np.sum(abs(np.subtract(kernel1, kernel2))) / \
-            np.prod(kernel1.shape)
-        mean_dev_bias.append(bias_diff)
-        mean_dev_kernel.append(kernel_diff)
-        print("  Mean deviation for conv2D layer %d: bias=%f, kernel=%f"
-              % (i, bias_diff, kernel_diff))
+    # If the output is close to the input,
+    # the naive solution would be to just pass the input through the network.
+    # If the output is mostly close to 0,
+    # then the naive solution would be to always return 0.
+    #
+    # Calculate the loss of these two naive solutions.
+    # The real loss of the network should be below these values.
+    def naive_solutions(self, file):
+        h5f = h5py.File(file, "r")
+        x = h5f["x"][:]
+        y = h5f["y"][:]
 
-    bias_dev = np.sum(mean_dev_bias)/len(mean_dev_bias)
-    kernel_dev = np.sum(mean_dev_kernel)/len(mean_dev_kernel)
+        mashup = Input(shape=(None, None, 1), name='input')
 
-    return bias_dev, kernel_dev
+        # model with zero output
+        conv0 = Conv2D(1, 1, activation='linear',
+                       kernel_initializer=Zeros(), padding='same')(mashup)
+        model0 = Model(inputs=mashup, outputs=conv0)
+        model0.compile(loss='mean_squared_error', optimizer='adam')
+        model0.summary(line_length=150)
 
+        # model with output=input
+        conv1 = Conv2D(1, 1, activation='linear',
+                       kernel_initializer=Ones(), padding='same')(mashup)
+        model1 = Model(inputs=mashup, outputs=conv1)
+        model1.compile(loss='mean_squared_error', optimizer='adam')
+        model1.summary(line_length=150)
 
-def get_batch_normalization_data(number, weights):
-    index = BATCH_NORMALIZATION_INDEX.format(number)
-    tmp = weights[index][index]["beta:0"]
-    beta = np.zeros(tmp.shape)
-    tmp.read_direct(beta)
-    tmp = weights[index][index]["gamma:0"]
-    gamma = np.zeros(tmp.shape)
-    tmp.read_direct(gamma)
-    tmp = weights[index][index]["moving_mean:0"]
-    moving_mean = np.zeros(tmp.shape)
-    tmp.read_direct(moving_mean)
-    tmp = weights[index][index]["moving_variance:0"]
-    moving_variance = np.zeros(tmp.shape)
-    tmp.read_direct(moving_variance)
+        error0 = model0.evaluate(x, y, batch_size=8)
+        error1 = model1.evaluate(x, y, batch_size=8)
 
-    return beta, gamma, moving_mean, moving_variance
+        print("MSE for output=all_zeros: %f" % error0)
+        print("MSE for output=input: %f" % error1)
 
+    def compare_batch_normalization(self, weight1, weight2):
+        meanDevBeta = []
+        meanDevGamma = []
+        meanDevMovMean = []
+        meanDevMovVar = []
+        for i in range(1, BATCH_LAYERS + 1):
+            (beta1, gamma1, movingMean1, movingVariance1) \
+                = self.get_batch_normalization_data(1, weight1)
+            (beta2, gamma2, movingMean2, movingVariance2) \
+                = self.get_batch_normalization_data(1, weight2)
+            betaDiff = np.sum(abs(np.subtract(beta1, beta2))) / beta1.shape[0]
+            gammaDiff = np.sum(abs(np.subtract(gamma1, gamma2))) \
+                / gamma1.shape[0]
+            movingMeanDiff \
+                = np.sum(abs(np.subtract(movingMean1, movingMean2))) / \
+                movingMean1.shape[0]
+            movingVarianceDiff \
+                = np.sum(abs(np.subtract(movingVariance1, movingVariance2))) \
+                / movingVariance1.shape[0]
+            meanDevBeta.append(betaDiff)
+            meanDevGamma.append(gammaDiff)
+            meanDevMovMean.append(movingMeanDiff)
+            meanDevMovVar.append(movingVarianceDiff)
+            print("  Mean deviation for batch normalization layer %d: "
+                  "beta=%f, gamma=%f, moving mean=%f, moving variance=%f"
+                  % (i, betaDiff, gammaDiff,
+                     movingMeanDiff, movingVarianceDiff))
 
-def get_conv2d_layer_data(number, weights):
-    index = CONV2D_INDEX.format(number)
-    tmp = weights[index][index]["bias:0"]
-    bias = np.zeros(tmp.shape)
-    tmp.read_direct(bias)
-    tmp = weights[index][index]["kernel:0"]
-    kernel = np.zeros(tmp.shape)
-    tmp.read_direct(kernel)
+        betaDev = np.sum(meanDevBeta) / len(meanDevBeta)
+        gammaDev = np.sum(meanDevGamma) / len(meanDevGamma)
+        movingMeanDev = np.sum(meanDevMovMean) / len(meanDevMovMean)
+        movingVarDev = np.sum(meanDevMovVar) / len(meanDevMovVar)
 
-    return bias, kernel
+        return betaDev, gammaDev, movingMeanDev, movingVarDev
 
+    def compare_conv2d(self, weight1, weight2):
+        meanDevBias = []
+        meanDevKernel = []
+        for i in range(1, CONV2D_LAYERS + 1):
+            (bias1, kernel1) = self.get_conv2d_layer_data(1, weight1)
+            (bias2, kernel2) = self.get_conv2d_layer_data(1, weight2)
+            biasDiff = np.sum(abs(np.subtract(bias1, bias2))) / bias1.shape[0]
+            kernelDiff = np.sum(abs(np.subtract(kernel1, kernel2))) / \
+                np.prod(kernel1.shape)
+            meanDevBias.append(biasDiff)
+            meanDevKernel.append(kernelDiff)
+            print("  Mean deviation for conv2D layer %d: bias=%f, kernel=%f"
+                  % (i, biasDiff, kernelDiff))
 
-def print_h5_structure(weights):
+        biasDev = np.sum(meanDevBias) / len(meanDevBias)
+        kernelDev = np.sum(meanDevKernel) / len(meanDevKernel)
 
-    def print_name(name):
-        print(name)
+        return biasDev, kernelDev
 
-    weights.visit(print_name)
+    def get_batch_normalization_data(self, number, weights):
+        index = BATCH_NORMALIZATIONINDEX.format(number)
+        tmp = weights[index][index]["beta:0"]
+        beta = np.zeros(tmp.shape)
+        tmp.readDirect(beta)
+        tmp = weights[index][index]["gamma:0"]
+        gamma = np.zeros(tmp.shape)
+        tmp.readDirect(gamma)
+        tmp = weights[index][index]["movingMean:0"]
+        movingMean = np.zeros(tmp.shape)
+        tmp.readDirect(movingMean)
+        tmp = weights[index][index]["movingVariance:0"]
+        movingVariance = np.zeros(tmp.shape)
+        tmp.readDirect(movingVariance)
 
+        return beta, gamma, movingMean, movingVariance
 
-def read_weights_from_dir(directory):
-    def checkFilename(f):
-        return (f.endswith(".h5") or f.endswith("hdf5")) \
-               and not f.startswith(".")
+    def get_conv2d_layer_data(self, number, weights):
+        index = CONV2DINDEX.format(number)
+        tmp = weights[index][index]["bias:0"]
+        bias = np.zeros(tmp.shape)
+        tmp.readDirect(bias)
+        tmp = weights[index][index]["kernel:0"]
+        kernel = np.zeros(tmp.shape)
+        tmp.readDirect(kernel)
 
-    weights = []
+        return bias, kernel
 
-    for dirPath, dirNames, fileNames in os.walk(directory):
-        filteredFiles = filter(checkFilename, fileNames)
+    def print_h5_structure(self, weights):
 
-        for fileName in filteredFiles:
-            path = os.path.join(directory, fileName)
-            weight = h5py.File(path, "r")
-            weights.append(weight)
+        def print_name(name):
+            print(name)
 
-    return weights
+        weights.visit(print_name)
 
+    def read_weights_from_dir(self, directory):
+        def check_filename(f):
+            return (f.endswith(".h5") or f.endswith("hdf5")) \
+                   and not f.startswith(".")
 
-def create_spectrogram_from_file(filePath):
-    audio, sampleRate = conversion.loadAudioFile(filePath)
-    spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
+        weights = []
 
-    return spectrogram
+        for dirPath, dirNames, fileNames in os.walk(directory):
+            filteredFiles = filter(check_filename, fileNames)
+
+            for fileName in filteredFiles:
+                path = os.path.join(directory, fileName)
+                weight = h5py.File(path, "r")
+                weights.append(weight)
+
+        return weights
+
+    def read_audio_files_from_dir(self, directory):
+        def check_filename(f):
+            return f.endswith(".wav") and not f.startswith(".")
+
+        audios = []
+
+        for dirPath, dirNames, fileNames in os.walk(directory):
+            filteredFiles = filter(check_filename, fileNames)
+
+            for fileName in filteredFiles:
+                path = os.path.join(directory, fileName)
+                audio, sampleRate = conversion.loadAudioFile(path)
+                audios.append(audio)
+
+        return audios
+
+    def create_spectrogram_from_file(self, filePath):
+        audio, sampleRate = conversion.loadAudioFile(filePath)
+        spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
+
+        return spectrogram
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--spectrogram", default=None, type=str,
-                        help="file for spectrogram analysis")
-    parser.add_argument("--weights", default=None, type=str,
-                        help="directory for weight analysis")
-    parser.add_argument("--slice", default=None, type=str,
-                        help="file for slice analysis")
 
-    args = parser.parse_args()
-    if args.spectrogram:
-        analyse_spectrogram(args.spectrogram)
-    if args.weights:
-        analyse_weights(args.weights)
-    if args.slice:
-        analyse_slices(args.slice)
+    args = sys.argv[1]
+    config = Config()
+    config_str = str(config)
+    print(config_str)
+
+    analysis = Analysis()
+
+    functions = config.analysis.split(",")
+    for f in functions:
+        print("analyse " + f)
+        analyse = getattr(analysis, f)
+        analyse(args)

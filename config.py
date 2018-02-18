@@ -30,6 +30,7 @@ class Config(object):
         self.load = self.get_bool("LOAD", False)
         # size of spectrogram slices to use
         self.slice_size = self.get_int("SLICE_SIZE", 128)
+
         # train on instrumentals
         self.instrumental = self.get_bool("INSTRUMENTAL", False)
 
@@ -52,8 +53,8 @@ class Config(object):
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")
 
-        # inference slice
-        self.inference_slice = self.get_int("INFERENCE_SLICE", 3500)
+        # analysis functions to be executed
+        self.analysis = self.get("ANALYSIS", "spectrograms")
 
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
