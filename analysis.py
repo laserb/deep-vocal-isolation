@@ -3,6 +3,8 @@ import argparse
 import os
 import h5py
 import numpy as np
+from data import chop
+
 
 BATCH_NORMALIZATION_INDEX = "batch_normalization_{}"
 CONV2D_INDEX = "conv2d_{}"
@@ -11,9 +13,43 @@ BATCH_LAYERS = 4
 CONV2D_LAYERS = 12
 
 
+def analyse_slices(filePath):
+    spectrogram = create_spectrogram_from_file(filePath)
+    curr_min = float("inf")
+    curr_min_i = -1
+    curr_max = 0
+    curr_max_i = 1
+
+    slices = chop(spectrogram, 128)
+    for i in range(0, len(slices)):
+        smin = np.min(slices[i])
+        smax = np.max(slices[i])
+        if smin < curr_min:
+            curr_min = smin
+            curr_min_i = i
+        if smax > curr_max:
+            curr_max = smax
+            curr_max_i = i
+
+    print("Minimum at %d with %f" % (curr_min_i, curr_min))
+    print("Maximum at %d with %f" % (curr_max_i, curr_max))
+    mean_dev = np.sum(slices)/(len(slices) * np.prod(slices[0].shape))
+    print("Mean deviation %f" % mean_dev)
+    count_dev_sum = 0
+    count_dev_max = 0
+    for slice in slices:
+        if np.sum(slice)/np.prod(slice.shape) > mean_dev:
+            count_dev_sum += 1
+        if np.max(slice) > mean_dev:
+            count_dev_max += 1
+    print("Count sum above mean deviation is %d of %d"
+          % (count_dev_sum, len(slices)))
+    print("Count max above mean deviation is %d of %d"
+          % (count_dev_max, len(slices)))
+
+
 def analyse_spectrogram(filePath):
-    audio, sampleRate = conversion.loadAudioFile(filePath)
-    spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
+    spectrogram = create_spectrogram_from_file(filePath)
     conversion.saveSpectrogram(spectrogram,
                                filePath.replace(".wav", "_spectrogram.png"))
 
@@ -146,14 +182,26 @@ def read_weights_from_dir(directory):
     return weights
 
 
+def create_spectrogram_from_file(filePath):
+    audio, sampleRate = conversion.loadAudioFile(filePath)
+    spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
+
+    return spectrogram
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file", default=None, type=str,
+    parser.add_argument("--spectrogram", default=None, type=str,
                         help="file for spectrogram analysis")
     parser.add_argument("--weights", default=None, type=str,
                         help="directory for weight analysis")
+    parser.add_argument("--slice", default=None, type=str,
+                        help="file for slice analysis")
+
     args = parser.parse_args()
-    if args.file:
-        analyse_spectrogram(args.file)
+    if args.spectrogram:
+        analyse_spectrogram(args.spectrogram)
     if args.weights:
         analyse_weights(args.weights)
+    if args.slice:
+        analyse_slices(args.slice)
