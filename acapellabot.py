@@ -92,7 +92,7 @@ class AcapellaBot:
             checkpointer = ModelCheckpoint(filepath='./weights.hdf5',
                                            verbose=1,
                                            save_best_only=True)
-            tensor_board = TensorBoard(log_dir="./logs/{}".format(date))
+            tensor_board = TensorBoard(log_dir=self.logPath + "/{}".format(date))
             self.model.fit(xTrain, yTrain, batch_size=batch,
                            initial_epoch=start_epoch, epochs=end_epoch,
                            validation_data=(xValid, yValid),
@@ -204,6 +204,8 @@ if __name__ == "__main__":
                         help="First epoch number.")
     parser.add_argument("--weights", default="weights.h5",
                         type=str, help="h5 file to read/write weights to")
+    parser.add_argument("--logs", default="./logs",
+                        type=str, help="directory to store tensorboard log files")
     parser.add_argument("--batch", default=8, type=int,
                         help="Batch size for training")
     parser.add_argument("--phase", default=10, type=int,
@@ -215,6 +217,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     acapellabot = AcapellaBot()
+
+    acapellabot.logPath = args.logs
 
     if len(args.files) == 0 and args.data:
         console.log("No files provided; attempting to train on " +
