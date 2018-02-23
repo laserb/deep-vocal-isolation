@@ -48,6 +48,9 @@ class Config(object):
         # model
         self.model = self.get("MODEL", "acapellabot")
 
+        # loss
+        self.loss = self.get("LOSS", "mean_squared_error")
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value

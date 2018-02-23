@@ -30,6 +30,7 @@ from config import Config
 from metrics import Metrics
 from checkpointer import Checkpointer
 from modeler import Modeler
+from loss import Loss
 
 
 class AcapellaBot:
@@ -37,9 +38,9 @@ class AcapellaBot:
         self.config = config
         metrics = Metrics().get()
         m = Modeler().get()
+        loss = Loss().get()
         console.log("Model has", m.count_params(), "params")
-        m.compile(loss='mean_squared_error', optimizer='adam',
-                  metrics=metrics)
+        m.compile(loss=loss, optimizer='adam', metrics=metrics)
         m.summary(line_length=150)
         plot_model(m, to_file='model.png', show_shapes=True)
         self.model = m
