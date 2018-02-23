@@ -100,22 +100,27 @@ class AcapellaBot:
                            callbacks=[checkpointer, tensor_board])
             console.notify(str(epochs) + " Epochs Complete!",
                            "Training on", data.inPath, "with size", batch)
+
             start_epoch += epochs
-            while True:
-                try:
-                    epochs = int(
-                        input("How many more epochs should we train for? "))
-                    break
-                except ValueError:
-                    console.warn(
-                        "Oops, number parse failed. Try again, I guess?")
-            if epochs > 0:
-                save = input("Should we save intermediate weights [y/n]? ")
-                if not save.lower().startswith("n"):
-                    weightPath = ''.join(random.choice(string.digits)
-                                         for _ in range(16)) + ".h5"
-                    console.log("Saving intermediate weights to", weightPath)
-                    self.saveWeights(weightPath)
+            if self.quit:
+                break
+            else:
+                while True:
+                    try:
+                        epochs = int(
+                            input("How many more epochs should we train for?"))
+                        break
+                    except ValueError:
+                        console.warn(
+                            "Oops, number parse failed. Try again, I guess?")
+                if epochs > 0:
+                    save = input("Should we save intermediate weights [y/n]? ")
+                    if not save.lower().startswith("n"):
+                        weightPath = ''.join(random.choice(string.digits)
+                                             for _ in range(16)) + ".h5"
+                        console.log("Saving intermediate weights to",
+                                    weightPath)
+                        self.saveWeights(weightPath)
 
     def saveWeights(self, path):
         self.model.save_weights(path, overwrite=True)
@@ -199,6 +204,7 @@ if __name__ == "__main__":
     acapellabot = AcapellaBot()
 
     acapellabot.logPath = config.logs
+    acapellabot.quit = config.quit
 
     if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
