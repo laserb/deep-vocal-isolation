@@ -14,6 +14,7 @@ import h5py
 
 import console
 import conversion
+from config import Config
 
 # Modify these functions if your data is in a different format
 
@@ -31,7 +32,6 @@ def fileIsAcapella(fileName):
 
 
 NUMBER_OF_KEYS = 12  # number of keys to iterate over
-SLICE_SIZE = 128    # size of spectrogram slices to use
 
 # Slice up matrices into squares
 # so the neural net gets a consistent size for training
@@ -55,6 +55,7 @@ class Data:
         self.trainingSplit = trainingSplit
         self.x = []
         self.y = []
+        self.config = Config()
         self.load()
 
     def train(self):
@@ -99,8 +100,8 @@ class Data:
                     console.info("Created spectrogram for", fileName,
                                  "with shape",
                                  spectrogram.shape)
-                    mashupSlices = chop(mashup, SLICE_SIZE)
-                    acapellaSlices = chop(acapella, SLICE_SIZE)
+                    mashupSlices = chop(mashup, self.config.slice_size)
+                    acapellaSlices = chop(acapella, self.config.slice_size)
                     self.x.extend(mashupSlices)
                     self.y.extend(acapellaSlices)
             console.info("Created", len(self.x), "total slices so far")
