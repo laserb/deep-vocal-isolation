@@ -14,10 +14,10 @@ Typical usage:
        See data.py for data specifications.
 """
 
-import argparse
 import random
 import string
 import os
+import sys
 import datetime
 
 import numpy as np
@@ -32,6 +32,7 @@ import conversion
 import keras.backend as K
 
 from data import Data
+from config import Config
 
 
 class AcapellaBot:
@@ -187,57 +188,37 @@ class AcapellaBot:
 
 
 if __name__ == "__main__":
-    # if data folder is specified, create a new data object
-    #    and train on the data
-    # if input audio is specified, infer on the input
-    parser = argparse.ArgumentParser(
-        description="Acapella extraction with a convolutional neural network")
-    parser.add_argument("--fft", default=1536, type=int,
-                        help="Size of FFT windows")
-    parser.add_argument("--data", default=None, type=str,
-                        help="Path containing training data")
-    parser.add_argument("--split", default=0.9, type=float,
-                        help="Proportion of the data to train on")
-    parser.add_argument("--epochs", default=10, type=int,
-                        help="Number of epochs to train.")
-    parser.add_argument("--start-epoch", default=0, type=int,
-                        help="First epoch number.")
-    parser.add_argument("--weights", default="weights.h5",
-                        type=str, help="h5 file to read/write weights to")
-    parser.add_argument("--logs", default="./logs",
-                        type=str, help="directory to store tensorboard log files")
-    parser.add_argument("--batch", default=8, type=int,
-                        help="Batch size for training")
-    parser.add_argument("--phase", default=10, type=int,
-                        help="Phase iterations for reconstruction")
-    parser.add_argument("--load", action='store_true',
-                        help="Load previous weights file before starting")
-    parser.add_argument("files", nargs="*", default=[])
-
-    args = parser.parse_args()
+    files = sys.argv[1:]
+    config = Config()
+    config_str = str(config)
+    print(config_str)
+    # save current environment for later usage
+    with open("./envs/last", "w") as f:
+        f.write(config_str)
 
     acapellabot = AcapellaBot()
 
-    acapellabot.logPath = args.logs
+    acapellabot.logPath = config.logs
 
-    if len(args.files) == 0 and args.data:
+    if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
-                    args.data + "...")
-        if args.load:
+                    config.data + "...")
+        if config.load:
             console.h1("Loading Weights")
-            acapellabot.loadWeights(args.weights)
+            acapellabot.loadWeights(config.weights)
         console.h1("Loading Data")
-        data = Data(args.data, args.fft, args.split)
+        data = Data(config.data, config.fft, config.split)
         console.h1("Training Model")
-        acapellabot.train(data, args.epochs, args.batch, args.start_epoch)
-        acapellabot.saveWeights(args.weights)
-    elif len(args.files) > 0:
+        acapellabot.train(data, config.epochs,
+                          config.batch, config.start_epoch)
+        acapellabot.saveWeights(config.weights)
+    elif len(files) > 0:
         console.log("Weights provided; performing inference on " +
-                    str(args.files) + "...")
+                    str(files) + "...")
         console.h1("Loading weights")
-        acapellabot.loadWeights(args.weights)
-        for f in args.files:
-            acapellabot.isolateVocals(f, args.fft, args.phase)
+        acapellabot.loadWeights(config.weights)
+        for f in files:
+            acapellabot.isolateVocals(f, config.fft, config.phase)
     else:
         console.error(
             "Please provide data to train on (--data) or files to infer on")
