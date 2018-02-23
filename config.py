@@ -39,6 +39,9 @@ class Config(object):
         # I.e. result of str(mydict).
         self.chopparams = self.get("CHOPPARAMS", "{'scale': 128}")
 
+        # metrics
+        self.metrics = self.get("METRICS", "mean_pred,max_pred")
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value

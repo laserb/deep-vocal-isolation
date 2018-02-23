@@ -29,15 +29,16 @@ from keras.callbacks import ModelCheckpoint, TensorBoard
 
 import console
 import conversion
-import keras.backend as K
 
 from data import Data
 from config import Config
+from metrics import Metrics
 
 
 class AcapellaBot:
     def __init__(self, config):
         self.config = config
+        metrics = Metrics().get()
         mashup = Input(shape=(None, None, 1), name='input')
         convA = Conv2D(64, 3, activation='relu', padding='same')(mashup)
         conv = Conv2D(64, 4, strides=2, activation='relu',
@@ -71,7 +72,7 @@ class AcapellaBot:
         m = Model(inputs=mashup, outputs=acapella)
         console.log("Model has", m.count_params(), "params")
         m.compile(loss='mean_squared_error', optimizer='adam',
-                  metrics=[self.mean_pred])
+                  metrics=metrics)
         m.summary(line_length=150)
         plot_model(m, to_file='model.png', show_shapes=True)
         self.model = m
@@ -79,9 +80,6 @@ class AcapellaBot:
         # this should represent how much the input gets downscaled
         # in the middle of the network
         self.peakDownscaleFactor = 4
-
-    def mean_pred(self, y_true, y_pred):
-        return K.mean(y_pred)
 
     def train(self, data, epochs, batch=8, start_epoch=0):
         xTrain, yTrain = data.train()
