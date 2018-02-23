@@ -42,6 +42,9 @@ class Config(object):
         # metrics
         self.metrics = self.get("METRICS", "mean_pred,max_pred")
 
+        # Checkpoints run after each epoch
+        self.checkpoints = self.get("CHECKPOINTS", "tensorboard,weights")
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value
