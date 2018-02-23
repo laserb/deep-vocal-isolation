@@ -37,3 +37,20 @@ class Chopper(object):
                            time * scale: (time + 1) * scale]
                 slices.append(s)
         return slices
+
+    def full(self, matrix, scale):
+        slices = []
+        for time in range(0, matrix.shape[1] // scale):
+            s = matrix[1:, time * scale: (time + 1) * scale]
+            slices.append(s)
+        return slices
+
+    def upper_half(self, matrix, scale):
+        slices = []
+        half = matrix.shape[0]//2
+        for time in range(0, matrix.shape[1] // scale):
+            for freq in range(0, half // scale):
+                s = matrix[freq * scale: (freq + 1) * scale,
+                           time * scale: (time + 1) * scale]
+                slices.append(s)
+        return slices
