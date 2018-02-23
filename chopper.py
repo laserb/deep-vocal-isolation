@@ -54,3 +54,18 @@ class Chopper(object):
                            time * scale: (time + 1) * scale]
                 slices.append(s)
         return slices
+
+    def sliding(self, matrix, scale, step):
+        if isinstance(step, int):
+            time_step = step
+            freq_step = step
+        else:
+            time_step = step[0]
+            freq_step = step[1]
+        slices = []
+        for time in range(0, (matrix.shape[1] - scale) // time_step):
+            for freq in range(0, (matrix.shape[0] - scale) // freq_step):
+                s = matrix[freq * freq_step: freq * freq_step + scale,
+                           time * time_step: time * time_step + scale]
+                slices.append(s)
+        return slices
