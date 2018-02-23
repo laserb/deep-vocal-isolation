@@ -54,6 +54,11 @@ class Config(object):
         # directory for analysis files
         self.analysis_path = self.get("ANALYSIS_PATH", "./analysis")
 
+        # percentile normalization
+        self.normalizer = self.get("NORMALIZER", "percentile")
+        self.normalizer_params = self.get("NORMALIZER_PARAMS",
+                                          "{'percentile': 95}")
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value

@@ -16,6 +16,7 @@ import console
 import conversion
 from config import Config
 from chopper import Chopper
+from normalizer import Normalizer
 
 # Modify these functions if your data is in a different format
 
@@ -68,7 +69,10 @@ class Data:
                 and not f.startswith(".")
 
         chopper = Chopper()
-        data_hash = hash(chopper)
+        chopper_hash = hash(chopper)
+        normalizer = Normalizer()
+        normalizer_hash = hash(normalizer)
+        data_hash = chopper_hash + normalizer_hash
         print("Data hash: %s" % data_hash)
         h5Path = self.get_data_path(data_hash)
         if os.path.isfile(h5Path):
@@ -77,6 +81,7 @@ class Data:
             self.y = h5f["y"][:]
         else:
             chop = chopper.get()
+            normalize = normalizer.get()
             for dirPath, dirNames, fileNames in os.walk(self.inPath):
                 filteredFiles = filter(checkFilename, fileNames)
                 for fileName in filteredFiles:
@@ -106,6 +111,8 @@ class Data:
                                  spectrogram.shape)
                     mashupSlices = chop(mashup)
                     acapellaSlices = chop(acapella)
+                    mashupSlices, acapellaSlices = \
+                        normalize(mashupSlices, acapellaSlices)
                     self.x.extend(mashupSlices)
                     self.y.extend(acapellaSlices)
             console.info("Created", len(self.x), "total slices so far")

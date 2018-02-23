@@ -1,4 +1,5 @@
 # Current configuration
+export ANALYSIS_PATH="./analysis"
 export BATCH="8"
 export CHECKPOINTS="tensorboard,weights"
 export CHOPNAME="tile"
@@ -13,10 +14,11 @@ export LOSS="mean_squared_error"
 export METRICS="mean_pred,max_pred"
 export MODEL="acapellabot"
 export MODEL_PARAMS=""
+export NORMALIZER="percentile"
+export NORMALIZER_PARAMS="{'percentile': 95}"
 export PHASE="10"
 export QUIT="True"
 export SPLIT="0.9"
 export START_EPOCH="0"
 export WEIGHTS="weights.h5"
-export ANALYSIS_PATH="./analysis"
-export INFERENCE_SLICE=3500
+
