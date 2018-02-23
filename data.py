@@ -15,6 +15,7 @@ import h5py
 import console
 import conversion
 from config import Config
+from chopper import Chopper
 
 # Modify these functions if your data is in a different format
 
@@ -32,20 +33,6 @@ def fileIsAcapella(fileName):
 
 
 NUMBER_OF_KEYS = 12  # number of keys to iterate over
-
-# Slice up matrices into squares
-# so the neural net gets a consistent size for training
-# (doesn't matter for inference)
-
-
-def chop(matrix, scale):
-    slices = []
-    for time in range(0, matrix.shape[1] // scale):
-        for freq in range(0, matrix.shape[0] // scale):
-            s = matrix[freq * scale: (freq + 1) * scale,
-                       time * scale: (time + 1) * scale]
-            slices.append(s)
-    return slices
 
 
 class Data:
@@ -67,24 +54,29 @@ class Data:
         return (self.x[int(len(self.x) * self.trainingSplit):],
                 self.y[int(len(self.y) * self.trainingSplit):])
 
-    def get_data_path(self):
+    def get_data_path(self, data_hash):
         if self.instrumental:
-            filename = "data_instrumental.h5"
+            type_string = "instrumental"
         else:
-            filename = "data_acapella.h5"
-        return os.path.join(self.inPath, filename)
+            type_string = "acapella"
+        return os.path.join(self.inPath,
+                            "data_%s_%s.h5" % (type_string, data_hash))
 
     def load(self, saveDataAsH5=True):
         def checkFilename(f):
             return (f.endswith(".mp3") or f.endswith("_all.wav")) \
                 and not f.startswith(".")
 
-        h5Path = os.path.join(self.inPath, self.get_data_path())
+        chopper = Chopper()
+        data_hash = hash(chopper)
+        print("Data hash: %s" % data_hash)
+        h5Path = self.get_data_path(data_hash)
         if os.path.isfile(h5Path):
             h5f = h5py.File(h5Path, "r")
             self.x = h5f["x"][:]
             self.y = h5f["y"][:]
         else:
+            chop = chopper.get()
             for dirPath, dirNames, fileNames in os.walk(self.inPath):
                 filteredFiles = filter(checkFilename, fileNames)
                 for fileName in filteredFiles:
@@ -112,8 +104,8 @@ class Data:
                     console.info("Created spectrogram for", fileName,
                                  "with shape",
                                  spectrogram.shape)
-                    mashupSlices = chop(mashup, self.config.slice_size)
-                    acapellaSlices = chop(acapella, self.config.slice_size)
+                    mashupSlices = chop(mashup)
+                    acapellaSlices = chop(acapella)
                     self.x.extend(mashupSlices)
                     self.y.extend(acapellaSlices)
             console.info("Created", len(self.x), "total slices so far")
@@ -122,10 +114,10 @@ class Data:
             self.y = np.array(self.y)[:, :, :, np.newaxis]
             # Save to file
             if saveDataAsH5:
-                self.save()
+                self.save(data_hash)
 
-    def save(self):
-        h5Path = os.path.join(self.inPath, self.get_data_path())
+    def save(self, data_hash):
+        h5Path = self.get_data_path(data_hash)
         h5f = h5py.File(h5Path, "w")
         h5f.create_dataset("x", data=self.x)
         h5f.create_dataset("y", data=self.y)

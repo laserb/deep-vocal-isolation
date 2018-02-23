@@ -33,6 +33,12 @@ class Config(object):
         # train on instrumentals
         self.instrumental = self.get_bool("INSTRUMENTAL", False)
 
+        # Function name for chopping
+        self.chopname = self.get("CHOPNAME", "tile")
+        # Parameters as a dictionary in string representation.
+        # I.e. result of str(mydict).
+        self.chopparams = self.get("CHOPPARAMS", "{'scale': 128}")
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value
