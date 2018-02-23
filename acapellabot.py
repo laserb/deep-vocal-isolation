@@ -20,9 +20,6 @@ import os
 import sys
 
 import numpy as np
-from keras.layers import Input, Conv2D, BatchNormalization, \
-        UpSampling2D, Concatenate
-from keras.models import Model
 from keras.utils import plot_model
 
 import console
@@ -32,43 +29,14 @@ from data import Data
 from config import Config
 from metrics import Metrics
 from checkpointer import Checkpointer
+from modeler import Modeler
 
 
 class AcapellaBot:
     def __init__(self, config):
         self.config = config
         metrics = Metrics().get()
-        mashup = Input(shape=(None, None, 1), name='input')
-        convA = Conv2D(64, 3, activation='relu', padding='same')(mashup)
-        conv = Conv2D(64, 4, strides=2, activation='relu',
-                      padding='same', use_bias=False)(convA)
-        conv = BatchNormalization()(conv)
-
-        convB = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(64, 4, strides=2, activation='relu',
-                      padding='same', use_bias=False)(convB)
-        conv = BatchNormalization()(conv)
-
-        conv = Conv2D(128, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(128, 3, activation='relu',
-                      padding='same', use_bias=False)(conv)
-        conv = BatchNormalization()(conv)
-        conv = UpSampling2D((2, 2))(conv)
-
-        conv = Concatenate()([conv, convB])
-        conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(64, 3, activation='relu',
-                      padding='same', use_bias=False)(conv)
-        conv = BatchNormalization()(conv)
-        conv = UpSampling2D((2, 2))(conv)
-
-        conv = Concatenate()([conv, convA])
-        conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(32, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(1, 3, activation='relu', padding='same')(conv)
-        acapella = conv
-        m = Model(inputs=mashup, outputs=acapella)
+        m = Modeler().get()
         console.log("Model has", m.count_params(), "params")
         m.compile(loss='mean_squared_error', optimizer='adam',
                   metrics=metrics)

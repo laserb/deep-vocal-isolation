@@ -45,6 +45,9 @@ class Config(object):
         # Checkpoints run after each epoch
         self.checkpoints = self.get("CHECKPOINTS", "tensorboard,weights")
 
+        # model
+        self.model = self.get("MODEL", "acapellabot")
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value
