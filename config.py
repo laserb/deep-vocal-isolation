@@ -77,7 +77,7 @@ class Config(object):
     def __str__(self):
         result = "# Current configuration\n"
         for name in sorted(self._values):
-            result += "export %s=%s\n" % (name, self._values[name])
+            result += 'export %s="%s"\n' % (name, self._values[name])
         return result
 
     def __hash__(self):
