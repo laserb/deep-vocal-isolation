@@ -61,17 +61,33 @@ class Analysis:
         print("Count max above mean deviation is %d of %d"
               % (countDevMax, len(slices)))
 
-    def spectrograms(self, directory, saveToFile=False):
+    def spectrograms(self, directory):
 
-        audio_files = self.read_audio_files_from_dir(directory)
+        data = self.read_spectrograms_from_dir(directory)
 
-        upper_count = 0
-        cente_count = 0
-        lower_count = 0
+        counts = [0, 0, 0]
+        desc = ["upper", "center", "lower"]
 
-        # if saveToFile:
-        #    conversion.saveSpectrogram(spectrogram,
-        #               filePath.replace(".wav", "Spectrogram.png"))
+        for (spectrogram, name) in data:
+
+            means = []
+            window = spectrogram.shape[0]//2
+            upperWindow = spectrogram[0:window]
+            means.append(np.sum(upperWindow) / np.prod(upperWindow.shape))
+            centerWindow = spectrogram[window//2: window//2 + window]
+            means.append(np.sum(centerWindow) / np.prod(centerWindow.shape))
+            lowerWindow = spectrogram[-window:]
+            means.append(np.sum(lowerWindow) / np.prod(lowerWindow.shape))
+
+            best = np.argmax(means)
+            counts[best] += 1
+            print("{:50s} best mean {:8f} in {:s} window".format(name, np.max(means), desc[best]))
+
+        print("\nstatistics \n")
+        print("%d spectrograms analysed\n" % len(data))
+        print("%d have the highest mean in %s window" % (counts[0], desc[0]))
+        print("%d have the highest mean in %s window" % (counts[1], desc[1]))
+        print("%d have the highest mean in %s window" % (counts[2], desc[2]))
 
     def weights(self, directory):
         weights = self.read_weights_from_dir(directory)
@@ -231,21 +247,22 @@ class Analysis:
 
         return weights
 
-    def read_audio_files_from_dir(self, directory):
+    def read_spectrograms_from_dir(self, directory):
         def check_filename(f):
             return f.endswith(".wav") and not f.startswith(".")
 
-        audios = []
+        data = []
 
         for dirPath, dirNames, fileNames in os.walk(directory):
             filteredFiles = filter(check_filename, fileNames)
 
             for fileName in filteredFiles:
                 path = os.path.join(directory, fileName)
-                audio, sampleRate = conversion.loadAudioFile(path)
-                audios.append(audio)
+                print("creating spectrogram for %s" % fileName)
+                spectrogram = self.create_spectrogram_from_file(path)
+                data.append((spectrogram,fileName))
 
-        return audios
+        return data
 
     def create_spectrogram_from_file(self, filePath):
         audio, sampleRate = conversion.loadAudioFile(filePath)
@@ -263,8 +280,7 @@ if __name__ == "__main__":
 
     analysis = Analysis()
 
-    functions = config.analysis.split(",")
-    for f in functions:
-        print("analyse " + f)
-        analyse = getattr(analysis, f)
-        analyse(args)
+    f = config.analysis
+    print("analyse " + f + "\n")
+    analyse = getattr(analysis, f)
+    analyse(args)
