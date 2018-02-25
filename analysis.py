@@ -1,9 +1,11 @@
+import argparse
+import datetime
+
 import conversion
 import os
 import numpy as np
 from config import Config
 from keras.models import Model
-import sys
 from keras.layers import Input, Conv2D
 from keras.initializers import Ones, Zeros
 import h5py
@@ -19,13 +21,27 @@ CONV2D_LAYERS = 12
 class Analysis:
     def __init__(self):
         self.config = Config()
-        self.analyse = self.config.analysis
+        self.analyse = "spectrograms"
+        self.save = True
+        self.analysisPath = self.config.analysis_path
+        self.content = "Analyse " + self.analyse + "\n"
 
     def get(self):
         return getattr(self, self.analyse)
 
-    def slices(self, filePath):
-        spectrogram = self.create_spectrogram_from_file(filePath)
+    def run(self, analyse, save, args):
+        self.analyse = analyse
+        self.save = save
+
+        config_str = str(self.config)
+        print(config_str)
+
+        print(self.content)
+        analyse = self.get()
+        analyse(*args)
+
+    def slices(self, file):
+        spectrogram = self._create_spectrogram_from_file(file)
         currMin = float("inf")
         currMinI = -1
         currMax = 0
@@ -33,7 +49,7 @@ class Analysis:
 
         chop = Chopper.get()
 
-        slices = chop(spectrogram, self.config.slice_size)
+        slices = chop(spectrogram)
         for i in range(0, len(slices)):
             smin = np.min(slices[i])
             smax = np.max(slices[i])
@@ -44,10 +60,12 @@ class Analysis:
                 currMax = smax
                 currMaxI = i
 
-        print("Minimum at %d with %f" % (currMinI, currMin))
-        print("Maximum at %d with %f" % (currMaxI, currMax))
         meanDev = np.sum(slices) / (len(slices) * np.prod(slices[0].shape))
-        print("Mean deviation %f" % meanDev)
+
+        self.write("Minimum at %d with %f" % (currMinI, currMin))
+        self.write("Maximum at %d with %f" % (currMaxI, currMax))
+        self.write("Mean deviation %f" % meanDev)
+
         countDevSum = 0
         countDevMax = 0
 
@@ -56,14 +74,17 @@ class Analysis:
                 countDevSum += 1
             if np.max(slice) > meanDev:
                 countDevMax += 1
-        print("Count sum above mean deviation is %d of %d"
-              % (countDevSum, len(slices)))
-        print("Count max above mean deviation is %d of %d"
-              % (countDevMax, len(slices)))
+
+        self.write("Count sum above mean deviation is %d of %d"
+                   % (countDevSum, len(slices)))
+        self.write("Count max above mean deviation is %d of %d"
+                   % (countDevMax, len(slices)))
+
+        self._save_analysis()
 
     def spectrograms(self, directory):
 
-        data = self.read_spectrograms_from_dir(directory)
+        data = self._read_spectrograms_from_dir(directory)
 
         counts = [0, 0, 0]
         desc = ["upper", "center", "lower"]
@@ -81,31 +102,41 @@ class Analysis:
 
             best = np.argmax(means)
             counts[best] += 1
-            print("{:50s} best mean {:8f} in {:s} window".format(name, np.max(means), desc[best]))
 
-        print("\nstatistics \n")
-        print("%d spectrograms analysed\n" % len(data))
-        print("%d have the highest mean in %s window" % (counts[0], desc[0]))
-        print("%d have the highest mean in %s window" % (counts[1], desc[1]))
-        print("%d have the highest mean in %s window" % (counts[2], desc[2]))
+            self.write("{:50s} best mean {:8f} in {:s} window"
+                       .format(name, np.max(means), desc[best]))
+
+        self.write("\nStatistics\n")
+        self.write("%d spectrograms analysed" % len(data))
+        self.write("%d have the highest mean in %s window"
+                   % (counts[0], desc[0]))
+        self.write("%d have the highest mean in %s window"
+                   % (counts[1], desc[1]))
+        self.write("%d have the highest mean in %s window"
+                   % (counts[2], desc[2]))
+        self._save_analysis()
 
     def weights(self, directory):
-        weights = self.read_weights_from_dir(directory)
+        weights = self._read_weights_from_dir(directory)
 
         for i in range(0, len(weights) - 1):
-            print("\nComparing weights of epoch %d with epoch %d\n"
-                  % (i + 1, i + 2))
-            betaDev, gammaDev, movingMeanDev, movingVarDev \
-                = self.compare_batch_normalization(weights[i], weights[i + 1])
-            biasDev, kernelDev \
-                = self.compare_conv2d(weights[i], weights[i + 1])
+            self.write("Comparing weights of epoch %d with epoch %d"
+                       % (i + 1, i + 2))
 
-            print("Epochs %d to %d: Batch normalization mean deviation: "
-                  "beta=%f, gamma=%f, moving mean=%f moving variance=%f"
-                  % (i + 1, i + 2, betaDev, gammaDev,
-                     movingMeanDev, movingVarDev))
-            print("Epochs %d to %d: Conv2d mean deviation: bias=%f, kernel=%f"
-                  % (i + 1, i + 2, biasDev, kernelDev))
+            betaDev, gammaDev, movingMeanDev, movingVarDev \
+                = self._compare_batch_normalization(weights[i], weights[i + 1])
+            biasDev, kernelDev \
+                = self._compare_conv2d(weights[i], weights[i + 1])
+
+            self.write("Epochs %d to %d: Batch normalization mean deviation: "
+                       "beta=%f, gamma=%f, moving mean=%f moving variance=%f"
+                       % (i + 1, i + 2, betaDev, gammaDev,
+                          movingMeanDev, movingVarDev))
+            self.write("Epochs %d to %d: Conv2d mean deviation: "
+                       "bias=%f, kernel=%f"
+                       % (i + 1, i + 2, biasDev, kernelDev))
+
+        self._save_analysis()
 
     # If the output is close to the input,
     # the naive solution would be to just pass the input through the network.
@@ -138,19 +169,20 @@ class Analysis:
         error0 = model0.evaluate(x, y, batch_size=8)
         error1 = model1.evaluate(x, y, batch_size=8)
 
-        print("MSE for output=all_zeros: %f" % error0)
-        print("MSE for output=input: %f" % error1)
+        self.write("MSE for output=all_zeros: %f" % error0)
+        self.write("MSE for output=input: %f" % error1)
+        self._save_analysis()
 
-    def compare_batch_normalization(self, weight1, weight2):
+    def _compare_batch_normalization(self, weight1, weight2):
         meanDevBeta = []
         meanDevGamma = []
         meanDevMovMean = []
         meanDevMovVar = []
         for i in range(1, BATCH_LAYERS + 1):
             (beta1, gamma1, movingMean1, movingVariance1) \
-                = self.get_batch_normalization_data(1, weight1)
+                = self._get_batch_normalization_data(1, weight1)
             (beta2, gamma2, movingMean2, movingVariance2) \
-                = self.get_batch_normalization_data(1, weight2)
+                = self._get_batch_normalization_data(1, weight2)
             betaDiff = np.sum(abs(np.subtract(beta1, beta2))) / beta1.shape[0]
             gammaDiff = np.sum(abs(np.subtract(gamma1, gamma2))) \
                 / gamma1.shape[0]
@@ -164,10 +196,10 @@ class Analysis:
             meanDevGamma.append(gammaDiff)
             meanDevMovMean.append(movingMeanDiff)
             meanDevMovVar.append(movingVarianceDiff)
-            print("  Mean deviation for batch normalization layer %d: "
-                  "beta=%f, gamma=%f, moving mean=%f, moving variance=%f"
-                  % (i, betaDiff, gammaDiff,
-                     movingMeanDiff, movingVarianceDiff))
+            self.write("  Mean deviation for batch normalization layer %d: "
+                       "beta=%f, gamma=%f, moving mean=%f, moving variance=%f"
+                       % (i, betaDiff, gammaDiff,
+                          movingMeanDiff, movingVarianceDiff))
 
         betaDev = np.sum(meanDevBeta) / len(meanDevBeta)
         gammaDev = np.sum(meanDevGamma) / len(meanDevGamma)
@@ -176,61 +208,62 @@ class Analysis:
 
         return betaDev, gammaDev, movingMeanDev, movingVarDev
 
-    def compare_conv2d(self, weight1, weight2):
+    def _compare_conv2d(self, weight1, weight2):
         meanDevBias = []
         meanDevKernel = []
         for i in range(1, CONV2D_LAYERS + 1):
-            (bias1, kernel1) = self.get_conv2d_layer_data(1, weight1)
-            (bias2, kernel2) = self.get_conv2d_layer_data(1, weight2)
+            (bias1, kernel1) = self._get_conv2d_layer_data(1, weight1)
+            (bias2, kernel2) = self._get_conv2d_layer_data(1, weight2)
             biasDiff = np.sum(abs(np.subtract(bias1, bias2))) / bias1.shape[0]
             kernelDiff = np.sum(abs(np.subtract(kernel1, kernel2))) / \
                 np.prod(kernel1.shape)
             meanDevBias.append(biasDiff)
             meanDevKernel.append(kernelDiff)
-            print("  Mean deviation for conv2D layer %d: bias=%f, kernel=%f"
-                  % (i, biasDiff, kernelDiff))
+            self.write("  Mean deviation for conv2D layer %d: "
+                       "bias=%f, kernel=%f"
+                       % (i, biasDiff, kernelDiff))
 
         biasDev = np.sum(meanDevBias) / len(meanDevBias)
         kernelDev = np.sum(meanDevKernel) / len(meanDevKernel)
 
         return biasDev, kernelDev
 
-    def get_batch_normalization_data(self, number, weights):
+    def _get_batch_normalization_data(self, number, weights):
         index = BATCH_NORMALIZATIONINDEX.format(number)
         tmp = weights[index][index]["beta:0"]
         beta = np.zeros(tmp.shape)
-        tmp.readDirect(beta)
+        tmp.read_direct(beta)
         tmp = weights[index][index]["gamma:0"]
         gamma = np.zeros(tmp.shape)
-        tmp.readDirect(gamma)
-        tmp = weights[index][index]["movingMean:0"]
+        tmp.read_direct(gamma)
+        tmp = weights[index][index]["moving_mean:0"]
         movingMean = np.zeros(tmp.shape)
-        tmp.readDirect(movingMean)
-        tmp = weights[index][index]["movingVariance:0"]
+        tmp.read_direct(movingMean)
+        tmp = weights[index][index]["moving_variance:0"]
         movingVariance = np.zeros(tmp.shape)
-        tmp.readDirect(movingVariance)
+        tmp.read_direct(movingVariance)
 
         return beta, gamma, movingMean, movingVariance
 
-    def get_conv2d_layer_data(self, number, weights):
+    def _get_conv2d_layer_data(self, number, weights):
         index = CONV2DINDEX.format(number)
         tmp = weights[index][index]["bias:0"]
         bias = np.zeros(tmp.shape)
-        tmp.readDirect(bias)
+        tmp.read_direct(bias)
         tmp = weights[index][index]["kernel:0"]
         kernel = np.zeros(tmp.shape)
-        tmp.readDirect(kernel)
+        tmp.read_direct(kernel)
 
         return bias, kernel
 
-    def print_h5_structure(self, weights):
+    def _print_h5_structure(self, weights):
 
         def print_name(name):
             print(name)
 
         weights.visit(print_name)
 
-    def read_weights_from_dir(self, directory):
+    def _read_weights_from_dir(self, directory):
         def check_filename(f):
             return (f.endswith(".h5") or f.endswith("hdf5")) \
                    and not f.startswith(".")
@@ -247,7 +280,7 @@ class Analysis:
 
         return weights
 
-    def read_spectrograms_from_dir(self, directory):
+    def _read_spectrograms_from_dir(self, directory):
         def check_filename(f):
             return f.endswith(".wav") and not f.startswith(".")
 
@@ -258,29 +291,57 @@ class Analysis:
 
             for fileName in filteredFiles:
                 path = os.path.join(directory, fileName)
-                print("creating spectrogram for %s" % fileName)
-                spectrogram = self.create_spectrogram_from_file(path)
-                data.append((spectrogram,fileName))
+                self.write("creating spectrogram for %s" % fileName, True)
+                spectrogram = self._create_spectrogram_from_file(path)
+                self._spectrogram_info(spectrogram)
+                data.append((spectrogram, fileName))
 
         return data
 
-    def create_spectrogram_from_file(self, filePath):
+    def _create_spectrogram_from_file(self, filePath):
         audio, sampleRate = conversion.loadAudioFile(filePath)
         spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
 
         return spectrogram
 
+    def write(self, message, printAnyway=False):
+        if self.save:
+            self.content += "\n" + message
+            if printAnyway:
+                print(message)
+        else:
+            print(message)
+
+    def _save_analysis(self):
+        print("\nAnalysis complete")
+        if self.save:
+            date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            if not os.path.exists(self.analysisPath):
+                os.makedirs(self.analysisPath)
+
+            path = self.analysisPath + "/" + self.analyse + date + ".txt"
+            with open(path, "w") as f:
+                f.write(self.content)
+
+    def _spectrogram_info(self, spectrogram):
+        spectrum = spectrogram
+        self.write("Range of spectrogram is " +
+                   str(np.min(spectrum)) + " -> " + str(np.max(spectrum)))
+        image = np.clip((spectrum - np.min(spectrum)) /
+                        (np.max(spectrum) - np.min(spectrum)), 0, 1)
+        self.write("Shape of spectrogram is (%d, %d)"
+                   % (image.shape[0], image.shape[1]))
+
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--analyse", default=None, type=str,
+                        help="analysis to be executed")
+    parser.add_argument("--save", action='store_true',
+                        help="save analysis output to file")
+    parser.add_argument("args", nargs="*", default=[])
 
-    args = sys.argv[1]
-    config = Config()
-    config_str = str(config)
-    print(config_str)
+    arguments = parser.parse_args()
 
     analysis = Analysis()
-
-    f = config.analysis
-    print("analyse " + f + "\n")
-    analyse = getattr(analysis, f)
-    analyse(args)
+    analysis.run(arguments.analyse, arguments.save, arguments.args)
