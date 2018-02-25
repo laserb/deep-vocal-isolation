@@ -40,7 +40,7 @@ class Chopper(object):
 
     def full(self, matrix, scale):
         slices = []
-        for time in range(0, matrix.shape[1] // scale):
+        for time in range(0, matrix.shape[1] // scale + 1):
             s = matrix[1:, time * scale: (time + 1) * scale]
             slices.append(s)
         return slices
