@@ -47,6 +47,7 @@ class Config(object):
 
         # model
         self.model = self.get("MODEL", "acapellabot")
+        self.model_params = self.get("MODEL_PARAMS", "")
 
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")

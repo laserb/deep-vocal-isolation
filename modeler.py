@@ -9,9 +9,14 @@ class Modeler(object):
     def __init__(self):
         self.config = Config()
         self.model = self.config.model
+        self.params = self.config.model_params
 
     def get(self):
-        return getattr(self, self.model)()
+        if self.params:
+            params = eval(self.params)
+        else:
+            params = {}
+        return getattr(self, self.model)(**params)
 
     def acapellabot(self):
         mashup = Input(shape=(None, None, 1), name='input')
