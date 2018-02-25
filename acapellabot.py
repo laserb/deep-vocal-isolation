@@ -18,59 +18,29 @@ import random
 import string
 import os
 import sys
-import datetime
 
 import numpy as np
-from keras.layers import Input, Conv2D, BatchNormalization, \
-        UpSampling2D, Concatenate
-from keras.models import Model
 from keras.utils import plot_model
-from keras.callbacks import ModelCheckpoint, TensorBoard
 
 import console
 import conversion
-import keras.backend as K
 
 from data import Data
 from config import Config
+from metrics import Metrics
+from checkpointer import Checkpointer
+from modeler import Modeler
+from loss import Loss
 
 
 class AcapellaBot:
-    def __init__(self):
-        mashup = Input(shape=(None, None, 1), name='input')
-        convA = Conv2D(64, 3, activation='relu', padding='same')(mashup)
-        conv = Conv2D(64, 4, strides=2, activation='relu',
-                      padding='same', use_bias=False)(convA)
-        conv = BatchNormalization()(conv)
-
-        convB = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(64, 4, strides=2, activation='relu',
-                      padding='same', use_bias=False)(convB)
-        conv = BatchNormalization()(conv)
-
-        conv = Conv2D(128, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(128, 3, activation='relu',
-                      padding='same', use_bias=False)(conv)
-        conv = BatchNormalization()(conv)
-        conv = UpSampling2D((2, 2))(conv)
-
-        conv = Concatenate()([conv, convB])
-        conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(64, 3, activation='relu',
-                      padding='same', use_bias=False)(conv)
-        conv = BatchNormalization()(conv)
-        conv = UpSampling2D((2, 2))(conv)
-
-        conv = Concatenate()([conv, convA])
-        conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(32, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(1, 3, activation='relu', padding='same')(conv)
-        acapella = conv
-        m = Model(inputs=mashup, outputs=acapella)
+    def __init__(self, config):
+        self.config = config
+        metrics = Metrics().get()
+        m = Modeler().get()
+        loss = Loss().get()
         console.log("Model has", m.count_params(), "params")
-        m.compile(loss='mean_squared_error', optimizer='adam',
-                  metrics=[self.mean_pred])
+        m.compile(loss=loss, optimizer='adam', metrics=metrics)
         m.summary(line_length=150)
         plot_model(m, to_file='model.png', show_shapes=True)
         self.model = m
@@ -79,30 +49,24 @@ class AcapellaBot:
         # in the middle of the network
         self.peakDownscaleFactor = 4
 
-    def mean_pred(self, y_true, y_pred):
-        return K.mean(y_pred)
-
     def train(self, data, epochs, batch=8, start_epoch=0):
         xTrain, yTrain = data.train()
         xValid, yValid = data.valid()
+        checkpointer = Checkpointer()
+        checkpoints = checkpointer.get()
         while epochs > 0:
             end_epoch = start_epoch + epochs
             console.log("Training for", epochs, "epochs on",
                         len(xTrain), "examples")
-            date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-            checkpointer = ModelCheckpoint(filepath='./weights.hdf5',
-                                           verbose=1,
-                                           save_best_only=True)
-            tensor_board = TensorBoard(log_dir=self.logPath + "/{}".format(date))
             self.model.fit(xTrain, yTrain, batch_size=batch,
                            initial_epoch=start_epoch, epochs=end_epoch,
                            validation_data=(xValid, yValid),
-                           callbacks=[checkpointer, tensor_board])
+                           callbacks=checkpoints)
             console.notify(str(epochs) + " Epochs Complete!",
                            "Training on", data.inPath, "with size", batch)
 
             start_epoch += epochs
-            if self.quit:
+            if self.config.quit:
                 break
             else:
                 while True:
@@ -160,7 +124,7 @@ class AcapellaBot:
                        phaseIterations,
                        sampleRate,
                        path,
-                       vocal=True)
+                       vocal=not self.config.instrumental)
 
         # save difference
         self.saveAudio(spectrogram - newSpectrogram,
@@ -168,7 +132,7 @@ class AcapellaBot:
                        phaseIterations,
                        sampleRate,
                        path,
-                       vocal=False)
+                       vocal=self.config.instrumental)
 
         console.log("Vocal isolation complete")
 
@@ -201,10 +165,7 @@ if __name__ == "__main__":
     with open("./envs/last", "w") as f:
         f.write(config_str)
 
-    acapellabot = AcapellaBot()
-
-    acapellabot.logPath = config.logs
-    acapellabot.quit = config.quit
+    acapellabot = AcapellaBot(config)
 
     if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
@@ -213,7 +174,7 @@ if __name__ == "__main__":
             console.h1("Loading Weights")
             acapellabot.loadWeights(config.weights)
         console.h1("Loading Data")
-        data = Data(config.data, config.fft, config.split)
+        data = Data()
         console.h1("Training Model")
         acapellabot.train(data, config.epochs,
                           config.batch, config.start_epoch)

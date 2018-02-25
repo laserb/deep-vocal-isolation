@@ -30,6 +30,26 @@ class Config(object):
         self.load = self.get_bool("LOAD", False)
         # size of spectrogram slices to use
         self.slice_size = self.get_int("SLICE_SIZE", 128)
+        # train on instrumentals
+        self.instrumental = self.get_bool("INSTRUMENTAL", False)
+
+        # Function name for chopping
+        self.chopname = self.get("CHOPNAME", "tile")
+        # Parameters as a dictionary in string representation.
+        # I.e. result of str(mydict).
+        self.chopparams = self.get("CHOPPARAMS", "{'scale': 128}")
+
+        # metrics
+        self.metrics = self.get("METRICS", "mean_pred,max_pred")
+
+        # Checkpoints run after each epoch
+        self.checkpoints = self.get("CHECKPOINTS", "tensorboard,weights")
+
+        # model
+        self.model = self.get("MODEL", "acapellabot")
+
+        # loss
+        self.loss = self.get("LOSS", "mean_squared_error")
 
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
@@ -57,7 +77,7 @@ class Config(object):
     def __str__(self):
         result = "# Current configuration\n"
         for name in sorted(self._values):
-            result += "export %s=%s\n" % (name, self._values[name])
+            result += 'export %s="%s"\n' % (name, self._values[name])
         return result
 
     def __hash__(self):
