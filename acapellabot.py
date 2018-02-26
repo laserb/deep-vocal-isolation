@@ -21,7 +21,6 @@ import sys
 
 import numpy as np
 from keras.utils import plot_model
-from matplotlib.cm import get_cmap
 
 import console
 import conversion
@@ -102,7 +101,7 @@ class AcapellaBot:
         console.log("Retrieved spectrogram; processing...")
 
         chopper = Chopper()
-        chopper.name = "full"
+        chopper.name = "infere"
         chopper.params = "{'scale': %d}" % self.config.inference_slice
         chop = chopper.get()
 
@@ -121,8 +120,9 @@ class AcapellaBot:
             predictedSpectrogram = \
                 predictedSpectrogramWithBatchAndChannels[0, :, :, 0]
             localSpectrogram = predictedSpectrogram[:slice.shape[0],
-                             :slice.shape[1]]
-            newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram), axis=1)
+                                                    :slice.shape[1]]
+            newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
+                                            axis=1)
 
         console.log("Processed spectrogram; reconverting to audio")
 
