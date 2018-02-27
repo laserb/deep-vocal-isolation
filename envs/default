@@ -19,4 +19,4 @@ export SLICE_SIZE="128"
 export SPLIT="0.9"
 export START_EPOCH="0"
 export WEIGHTS="weights.h5"
-
+export INFERENCE_SLICE=3500

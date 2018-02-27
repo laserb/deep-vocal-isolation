@@ -52,6 +52,9 @@ class Config(object):
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")
 
+        # inference slice
+        self.inference_slice = self.get_int("INFERENCE_SLICE", 3500)
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value

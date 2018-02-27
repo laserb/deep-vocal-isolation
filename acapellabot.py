@@ -31,6 +31,7 @@ from metrics import Metrics
 from checkpointer import Checkpointer
 from modeler import Modeler
 from loss import Loss
+from chopper import Chopper
 
 
 class AcapellaBot:
@@ -99,17 +100,30 @@ class AcapellaBot:
             audio, fftWindowSize=fftWindowSize)
         console.log("Retrieved spectrogram; processing...")
 
-        expandedSpectrogram = conversion.expandToGrid(
-            spectrogram, self.peakDownscaleFactor)
-        expandedSpectrogramWithBatchAndChannels = \
-            expandedSpectrogram[np.newaxis, :, :, np.newaxis]
-        predictedSpectrogramWithBatchAndChannels = self.model.predict(
-            expandedSpectrogramWithBatchAndChannels)
-        # o /// o
-        predictedSpectrogram = \
-            predictedSpectrogramWithBatchAndChannels[0, :, :, 0]
-        newSpectrogram = predictedSpectrogram[:spectrogram.shape[0],
-                                              :spectrogram.shape[1]]
+        chopper = Chopper()
+        chopper.name = "infere"
+        chopper.params = "{'scale': %d}" % self.config.inference_slice
+        chop = chopper.get()
+
+        slices = chop(spectrogram)
+
+        newSpectrogram = np.zeros((spectrogram.shape[0], 0))
+        for slice in slices:
+            expandedSpectrogram = conversion.expandToGrid(
+                slice, self.peakDownscaleFactor)
+            expandedSpectrogramWithBatchAndChannels = \
+                expandedSpectrogram[np.newaxis, :, :, np.newaxis]
+
+            predictedSpectrogramWithBatchAndChannels = self.model.predict(
+                expandedSpectrogramWithBatchAndChannels)
+            # o /// o
+            predictedSpectrogram = \
+                predictedSpectrogramWithBatchAndChannels[0, :, :, 0]
+            localSpectrogram = predictedSpectrogram[:slice.shape[0],
+                                                    :slice.shape[1]]
+            newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
+                                            axis=1)
+
         console.log("Processed spectrogram; reconverting to audio")
 
         # save original spectrogram as image
