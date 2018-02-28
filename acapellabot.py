@@ -53,7 +53,8 @@ class AcapellaBot:
     def train(self, data, epochs, batch=8, start_epoch=0):
         xTrain, yTrain = data.train()
         xValid, yValid = data.valid()
-        checkpointer = Checkpointer()
+        self.xValid, self.yValid = xValid, yValid
+        checkpointer = Checkpointer(self)
         checkpoints = checkpointer.get()
         while epochs > 0:
             end_epoch = start_epoch + epochs
