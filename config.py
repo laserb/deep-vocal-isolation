@@ -29,6 +29,9 @@ class Config(object):
         # Load previous weights file before starting
         self.load = self.get_bool("LOAD", False)
 
+        # The size of the slices for the inference
+        self.inference_slice = self.get_int("INFERENCE_SLICE", 3500)
+
         # train on instrumentals
         self.instrumental = self.get_bool("INSTRUMENTAL", False)
 
