@@ -44,7 +44,8 @@ class AcapellaBot:
         console.log("Model has", m.count_params(), "params")
         m.compile(loss=loss, optimizer='adam', metrics=metrics)
         m.summary(line_length=150)
-        plot_model(m, to_file='model.png', show_shapes=True)
+        plot_model(m, show_shapes=True,
+                   to_file=os.path.join(self.config.logs, 'model.png'))
         self.model = m
         # need to know so that we can avoid rounding errors with spectrogram
         # this should represent how much the input gets downscaled
@@ -85,14 +86,20 @@ class AcapellaBot:
                     if not save.lower().startswith("n"):
                         weightPath = ''.join(random.choice(string.digits)
                                              for _ in range(16)) + ".h5"
+                        os.path.join(os.path.dirname(config.weights),
+                                     weightPath)
                         console.log("Saving intermediate weights to",
                                     weightPath)
                         self.saveWeights(weightPath)
 
     def saveWeights(self, path):
+        if not os.path.isabs(path):
+            path = os.path.join(self.config.logs, path)
         self.model.save_weights(path, overwrite=True)
 
     def loadWeights(self, path):
+        if not os.path.isabs(path):
+            path = os.path.join(self.config.logs, path)
         self.model.load_weights(path)
 
     def isolateVocals(self, path, fftWindowSize, phaseIterations=10):
@@ -185,7 +192,8 @@ if __name__ == "__main__":
     config_str = str(config)
     print(config_str)
     # save current environment for later usage
-    with open("./envs/last", "w") as f:
+    last_env = os.path.join(config.logs, "env")
+    with open(last_env, "w") as f:
         f.write(config_str)
 
     acapellabot = AcapellaBot(config)

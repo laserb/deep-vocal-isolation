@@ -26,11 +26,16 @@ class Checkpointer(object):
 
     def tensorboard(self):
         date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        log_dir = self.config.logs + "/{}".format(date)
+        log_dir = self.config.tensorboard + "/{}".format(date)
+        log_dir = os.path.join(self.config.logs, log_dir)
         return TensorBoard(log_dir=log_dir)
 
     def weights(self):
-        return ModelCheckpoint(filepath='./weights.hdf5',
+        filepath = os.path.join(os.path.dirname(self.config.weights),
+                                "best_weights.hdf5")
+        if not os.path.isabs(filepath):
+            filepath = os.path.join(self.config.logs, filepath)
+        return ModelCheckpoint(filepath=filepath,
                                verbose=1,
                                save_best_only=True)
 
@@ -68,6 +73,8 @@ class ErrorVisualization(Callback):
         im = np.uint8(im * 255)
 
         im = Image.fromarray(im)
-        if not os.path.exists("images"):
-            os.mkdir("images")
-        im.save("images/error%03d-%f.png" % (epoch, top_val), format='PNG')
+        image_path = os.path.join(self.bot.config.logs, "images")
+        if not os.path.exists(image_path):
+            os.mkdir(image_path)
+        im.save("%s/error%03d-%f.png" % (image_path, epoch, top_val),
+                format='PNG')
