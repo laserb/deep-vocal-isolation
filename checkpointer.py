@@ -6,12 +6,12 @@ from PIL import Image
 import numpy as np
 import os
 
-from config import Config
+from config import config
 
 
 class Checkpointer(object):
     def __init__(self, bot):
-        self.config = Config()
+        self.config = config
         self.checkpoints = self.config.checkpoints
         self.bot = bot
 

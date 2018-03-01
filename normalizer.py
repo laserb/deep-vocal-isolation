@@ -2,12 +2,12 @@
 import numpy as np
 from hashlib import md5
 
-from config import Config
+from config import config
 
 
 class Normalizer(object):
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.normalizer = self.config.normalizer
         self.params = self.config.normalizer_params
 

@@ -100,6 +100,8 @@ class Config(object):
         return int(val, 16)
 
 
+# create singleton config
+config = Config()
 if __name__ == "__main__":
     config = Config()
     print(config)

@@ -26,7 +26,7 @@ import console
 import conversion
 
 from data import Data
-from config import Config
+from config import config
 from metrics import Metrics
 from checkpointer import Checkpointer
 from modeler import Modeler
@@ -182,7 +182,6 @@ class AcapellaBot:
 
 if __name__ == "__main__":
     files = sys.argv[1:]
-    config = Config()
     config_str = str(config)
     print(config_str)
     # save current environment for later usage

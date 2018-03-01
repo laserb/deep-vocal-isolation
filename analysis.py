@@ -4,7 +4,7 @@ import datetime
 import conversion
 import os
 import numpy as np
-from config import Config
+from config import config
 from keras.models import Model
 from keras.layers import Input, Conv2D
 from keras.initializers import Ones, Zeros
@@ -23,7 +23,7 @@ CONV2D_LAYERS = 12
 
 class Analysis:
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.analyse = "spectrograms"
         self.save = True
         self.analysisPath = self.config.analysis_path

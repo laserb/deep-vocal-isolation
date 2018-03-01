@@ -14,7 +14,7 @@ import h5py
 
 import console
 import conversion
-from config import Config
+from config import config
 from chopper import Chopper
 from normalizer import Normalizer
 
@@ -38,7 +38,7 @@ NUMBER_OF_KEYS = 12  # number of keys to iterate over
 
 class Data:
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.inPath = self.config.data
         self.fftWindowSize = self.config.fft
         self.trainingSplit = self.config.split
