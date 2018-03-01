@@ -10,6 +10,9 @@ from keras.layers import Input, Conv2D
 from keras.initializers import Ones, Zeros
 import h5py
 from chopper import Chopper
+from acapellabot import AcapellaBot
+from checkpointer import ErrorVisualization
+from data import Data
 
 BATCH_NORMALIZATIONINDEX = "batch_normalization_{}"
 CONV2DINDEX = "conv2d_{}"
@@ -303,6 +306,17 @@ class Analysis:
         spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
 
         return spectrogram
+
+    def error_images(self):
+        acapellabot = AcapellaBot(self.config)
+        acapellabot.loadWeights(self.config.weights)
+
+        data = Data()
+        xValid, yValid = data.valid()
+        acapellabot.xValid, acapellabot.yValid = xValid, yValid
+
+        error_visualization = ErrorVisualization(acapellabot)
+        error_visualization.on_epoch_end(-1)
 
     def write(self, message, printAnyway=False):
         if self.save:
