@@ -91,6 +91,18 @@ class AcapellaBot:
                         console.log("Saving intermediate weights to",
                                     weightPath)
                         self.saveWeights(weightPath)
+        return self.model.evaluate(xValid, yValid, batch_size=batch)
+
+    def run(self, data):
+        metrics = self.train(data, self.config.epochs,
+                             self.config.batch, self.config.start_epoch)
+        self.saveWeights(self.config.weights)
+        metrics_path = os.path.join(self.config.logs, "metrics")
+        with open(metrics_path, "w") as f:
+            metric_names = ["loss"] + self.config.metrics.split(",")
+            for i in range(len(metrics)):
+                f.write("val_%s %s\n" % (metric_names[i], metrics[i]))
+        return metrics
 
     def saveWeights(self, path):
         if not os.path.isabs(path):
@@ -207,9 +219,7 @@ if __name__ == "__main__":
         console.h1("Loading Data")
         data = Data()
         console.h1("Training Model")
-        acapellabot.train(data, config.epochs,
-                          config.batch, config.start_epoch)
-        acapellabot.saveWeights(config.weights)
+        acapellabot.run(data)
     elif len(files) > 0:
         console.log("Weights provided; performing inference on " +
                     str(files) + "...")
