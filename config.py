@@ -45,8 +45,12 @@ class Config(object):
         self.checkpoints = self.get("CHECKPOINTS", "tensorboard,weights")
 
         # model
-        self.model = self.get("MODEL", "acapellabot")
-        self.model_params = self.get("MODEL_PARAMS", "")
+        self.model = self.get("MODEL", "leaky_dropout")
+        self.model_params = self.get("MODEL_PARAMS", "{"
+                                     "'alpha1': 0.1,"
+                                     "'alpha2': 0.01,"
+                                     "'rate': 0.1"
+                                     "}")
 
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")
