@@ -32,6 +32,7 @@ from checkpointer import Checkpointer
 from modeler import Modeler
 from loss import Loss
 from chopper import Chopper
+from normalizer import Normalizer
 
 
 class AcapellaBot:
@@ -107,8 +108,14 @@ class AcapellaBot:
 
         slices = chop(spectrogram)
 
+        normalizer = Normalizer()
+        normalize = normalizer.get(both=False)
+        denormalize = normalizer.get_reverse()
+
         newSpectrogram = np.zeros((spectrogram.shape[0], 0))
         for slice in slices:
+            # normalize
+            slice, norm = normalize(slice)
             expandedSpectrogram = conversion.expandToGrid(
                 slice, self.peakDownscaleFactor)
             expandedSpectrogramWithBatchAndChannels = \
@@ -121,6 +128,8 @@ class AcapellaBot:
                 predictedSpectrogramWithBatchAndChannels[0, :, :, 0]
             localSpectrogram = predictedSpectrogram[:slice.shape[0],
                                                     :slice.shape[1]]
+            # de-normalize spectrogram
+            localSpectrogram = denormalize(localSpectrogram, norm)
             newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
                                             axis=1)
 
