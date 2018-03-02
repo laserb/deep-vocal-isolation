@@ -25,7 +25,7 @@ from keras.utils import plot_model
 import console
 import conversion
 
-from data import Data
+from data import Data, remove_track_boundaries
 from config import config
 from metrics import Metrics
 from checkpointer import Checkpointer
@@ -63,12 +63,15 @@ class AcapellaBot:
         checkpoints = checkpointer.get()
         if self.config.batch_generator != "keras":
             batch_generator = Batch().get()
+        nTrain = remove_track_boundaries(xTrain).shape[0]
         while epochs > 0:
             end_epoch = start_epoch + epochs
             console.log("Training for", epochs, "epochs on",
-                        len(xTrain), "examples")
+                        nTrain, "examples")
             console.log("Validate on", len(xValid), "examples")
             if self.config.batch_generator == "keras":
+                xTrain = remove_track_boundaries(xTrain)
+                yTrain = remove_track_boundaries(yTrain)
                 self.model.fit(xTrain, yTrain, batch_size=batch,
                                initial_epoch=start_epoch, epochs=end_epoch,
                                validation_data=(xValid, yValid),
@@ -77,7 +80,7 @@ class AcapellaBot:
                 self.model.fit_generator(
                     batch_generator(xTrain, yTrain, batch_size=batch),
                     initial_epoch=start_epoch, epochs=end_epoch,
-                    steps_per_epoch=len(xTrain)//batch,
+                    steps_per_epoch=nTrain//batch,
                     validation_data=(xValid, yValid),
                     callbacks=checkpoints)
             console.notify(str(epochs) + " Epochs Complete!",

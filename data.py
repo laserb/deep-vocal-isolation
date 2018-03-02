@@ -36,6 +36,13 @@ def fileIsAcapella(fileName):
 NUMBER_OF_KEYS = 12  # number of keys to iterate over
 
 
+def remove_track_boundaries(tracks):
+    slices = []
+    for track in tracks:
+        slices.extend(track)
+    return np.array(slices)
+
+
 class Data:
     def __init__(self):
         self.config = config
@@ -58,7 +65,11 @@ class Data:
         return self.prepare_data(end=len(self.mashup) * self.trainingSplit)
 
     def valid(self):
-        return self.prepare_data(start=len(self.mashup) * self.trainingSplit)
+        xValid, yValid = \
+            self.prepare_data(start=len(self.mashup) * self.trainingSplit)
+        xValid = remove_track_boundaries(xValid)
+        yValid = remove_track_boundaries(yValid)
+        return xValid, yValid
 
     def prepare_data(self, start=0, end=None):
         if end is None:
@@ -74,11 +85,11 @@ class Data:
             xChop, yChop = self.chop(mashup, output)
             xSlices, ySlices = \
                 self.normalize(xChop, yChop)
-            mashupSlices.extend(xSlices)
-            outputSlices.extend(ySlices)
-        # Add a "channels" channel to please the network
-        mashupSlices = np.array(mashupSlices)[:, :, :, np.newaxis]
-        outputSlices = np.array(outputSlices)[:, :, :, np.newaxis]
+            # Add a "channels" channel to please the network
+            xSlices = np.array(xSlices)[:, :, :, np.newaxis]
+            ySlices = np.array(ySlices)[:, :, :, np.newaxis]
+            mashupSlices.append(xSlices)
+            outputSlices.append(ySlices)
         return mashupSlices, outputSlices
 
     def get_data_path(self):

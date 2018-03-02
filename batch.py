@@ -2,6 +2,7 @@
 import numpy as np
 import random
 from config import config
+from data import remove_track_boundaries
 
 
 class Batch(object):
@@ -20,6 +21,9 @@ class Batch(object):
 
     def default(self):
         def generator(features, labels, batch_size):
+            # remove track boundaries
+            features = remove_track_boundaries(features)
+            labels = remove_track_boundaries(labels)
             # Create empty arrays to contain batch of features and labels#
             shape = features[0].shape
             batch_features = np.zeros((batch_size, *shape))

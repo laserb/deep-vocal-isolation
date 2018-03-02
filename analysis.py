@@ -151,7 +151,10 @@ class Analysis:
     # The real loss of the network should be below these values.
     def naive_solutions(self):
         data = Data()
-        mashup, output = data.train()
+        # use all data as validation data,
+        # they have the right form to analyse
+        data.trainingSplit = 0
+        mashup, output = data.valid()
 
         input_layer = Input(shape=(None, None, 1), name='input')
 
