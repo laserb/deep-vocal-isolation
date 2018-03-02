@@ -55,14 +55,18 @@ class Data:
         self.instrumental = []
 
         chopper = Chopper()
-        normalizer = Normalizer()
         self.chop = chopper.get()
+        normalizer = Normalizer()
         self.normalize = normalizer.get()
 
         self.load()
 
     def train(self):
-        return self.prepare_data(end=len(self.mashup) * self.trainingSplit)
+        length = len(self.mashup) * self.trainingSplit
+        if self.config.batch_generator.startswith("random"):
+            return self.prepare_random_data(end=length)
+        else:
+            return self.prepare_data(end=length)
 
     def valid(self):
         xValid, yValid = \
@@ -71,7 +75,7 @@ class Data:
         yValid = remove_track_boundaries(yValid)
         return xValid, yValid
 
-    def prepare_data(self, start=0, end=None):
+    def prepare_data(self, start=0, end=None, post_process=False):
         if end is None:
             end = len(self.mashup)
         x = self.mashup[int(start): int(end)]
@@ -82,15 +86,25 @@ class Data:
         mashupSlices = []
         outputSlices = []
         for mashup, output in zip(x, y):
-            xChop, yChop = self.chop(mashup, output)
+            xSlices, ySlices = self.chop(mashup, output)
             xSlices, ySlices = \
-                self.normalize(xChop, yChop)
+                self.normalize(xSlices, ySlices)
             # Add a "channels" channel to please the network
             xSlices = np.array(xSlices)[:, :, :, np.newaxis]
             ySlices = np.array(ySlices)[:, :, :, np.newaxis]
             mashupSlices.append(xSlices)
             outputSlices.append(ySlices)
         return mashupSlices, outputSlices
+
+    def prepare_random_data(self, start=0, end=None, post_process=False):
+        if end is None:
+            end = len(self.mashup)
+        x = self.mashup[int(start): int(end)]
+        if self.instrumental:
+            y = self.instrumental[int(start): int(end)]
+        else:
+            y = self.acapella[int(start): int(end)]
+        return x, y
 
     def get_data_path(self):
         return os.path.join(self.inPath, "data_%s.h5" % self.fftWindowSize)
