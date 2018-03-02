@@ -12,6 +12,7 @@ import h5py
 from chopper import Chopper
 from acapellabot import AcapellaBot
 from checkpointer import ErrorVisualization
+from loss import Loss
 from data import Data
 
 BATCH_NORMALIZATIONINDEX = "batch_normalization_{}"
@@ -148,29 +149,30 @@ class Analysis:
     #
     # Calculate the loss of these two naive solutions.
     # The real loss of the network should be below these values.
-    def naive_solutions(self, file):
-        h5f = h5py.File(file, "r")
-        x = h5f["x"][:]
-        y = h5f["y"][:]
+    def naive_solutions(self):
+        data = Data()
+        mashup, output = data.train()
 
-        mashup = Input(shape=(None, None, 1), name='input')
+        input_layer = Input(shape=(None, None, 1), name='input')
+
+        loss = Loss().get()
 
         # model with zero output
         conv0 = Conv2D(1, 1, activation='linear',
-                       kernel_initializer=Zeros(), padding='same')(mashup)
-        model0 = Model(inputs=mashup, outputs=conv0)
-        model0.compile(loss='mean_squared_error', optimizer='adam')
+                       kernel_initializer=Zeros(), padding='same')(input_layer)
+        model0 = Model(inputs=input_layer, outputs=conv0)
+        model0.compile(loss=loss, optimizer='adam')
         model0.summary(line_length=150)
 
         # model with output=input
         conv1 = Conv2D(1, 1, activation='linear',
-                       kernel_initializer=Ones(), padding='same')(mashup)
-        model1 = Model(inputs=mashup, outputs=conv1)
-        model1.compile(loss='mean_squared_error', optimizer='adam')
+                       kernel_initializer=Ones(), padding='same')(input_layer)
+        model1 = Model(inputs=input_layer, outputs=conv1)
+        model1.compile(loss=loss, optimizer='adam')
         model1.summary(line_length=150)
 
-        error0 = model0.evaluate(x, y, batch_size=8)
-        error1 = model1.evaluate(x, y, batch_size=8)
+        error0 = model0.evaluate(mashup, output, batch_size=8)
+        error1 = model1.evaluate(mashup, output, batch_size=8)
 
         self.write("MSE for output=all_zeros: %f" % error0)
         self.write("MSE for output=input: %f" % error1)
