@@ -60,7 +60,8 @@ class Config(object):
                                      "}")
 
         # batch generator
-        self.batch_generator = self.get("BATCH_GENERATOR", "default")
+        self.batch_generator = self.get("BATCH_GENERATOR", "tracks")
+        self.epoch_steps = self.get_int("EPOCH_STEPS", 50000)
 
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")

@@ -11,9 +11,8 @@ train:
         - sox -n -r 16000 -b 16 "bot_data/test2_all.wav" synth 3 sine 500 sine 700
 
     script:
-        - export EPOCHS="1"
         - export DATA="bot_data"
-        - export BATCH="1"
+        - source envs/ci
         - python3 ./acapellabot.py
 
 analyse_slices:

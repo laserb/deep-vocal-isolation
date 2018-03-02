@@ -1,0 +1,3 @@
+export EPOCHS="1"
+export BATCH="1"
+export EPOCH_STEPS="10"

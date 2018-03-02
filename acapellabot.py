@@ -63,11 +63,15 @@ class AcapellaBot:
         checkpoints = checkpointer.get()
         if self.config.batch_generator != "keras":
             batch_generator = Batch().get()
-        nTrain = remove_track_boundaries(xTrain).shape[0]
+        if self.config.epoch_steps:
+            epoch_steps = self.config.epoch_steps
+        else:
+            epoch_steps = remove_track_boundaries(xTrain).shape[0]
+        epoch_steps = epoch_steps // batch
         while epochs > 0:
             end_epoch = start_epoch + epochs
             console.log("Training for", epochs, "epochs on",
-                        nTrain, "examples")
+                        epoch_steps * batch, "examples")
             console.log("Validate on", len(xValid), "examples")
             if self.config.batch_generator == "keras":
                 xTrain = remove_track_boundaries(xTrain)
@@ -80,7 +84,7 @@ class AcapellaBot:
                 self.model.fit_generator(
                     batch_generator(xTrain, yTrain, batch_size=batch),
                     initial_epoch=start_epoch, epochs=end_epoch,
-                    steps_per_epoch=nTrain//batch,
+                    steps_per_epoch=epoch_steps,
                     validation_data=(xValid, yValid),
                     callbacks=checkpoints)
             console.notify(str(epochs) + " Epochs Complete!",
