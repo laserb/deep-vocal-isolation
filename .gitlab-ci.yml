@@ -13,6 +13,7 @@ train:
     script:
         - export EPOCHS="1"
         - export DATA="bot_data"
+        - export BATCH="1"
         - python3 ./acapellabot.py
 
 analyse_slices:

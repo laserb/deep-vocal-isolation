@@ -34,6 +34,7 @@ from loss import Loss
 from optimizer import Optimizer
 from chopper import Chopper
 from normalizer import Normalizer
+from batch import Batch
 
 
 class AcapellaBot:
@@ -60,14 +61,25 @@ class AcapellaBot:
         self.xValid, self.yValid = xValid, yValid
         checkpointer = Checkpointer(self)
         checkpoints = checkpointer.get()
+        if self.config.batch_generator != "keras":
+            batch_generator = Batch().get()
         while epochs > 0:
             end_epoch = start_epoch + epochs
             console.log("Training for", epochs, "epochs on",
                         len(xTrain), "examples")
-            self.model.fit(xTrain, yTrain, batch_size=batch,
-                           initial_epoch=start_epoch, epochs=end_epoch,
-                           validation_data=(xValid, yValid),
-                           callbacks=checkpoints)
+            console.log("Validate on", len(xValid), "examples")
+            if self.config.batch_generator == "keras":
+                self.model.fit(xTrain, yTrain, batch_size=batch,
+                               initial_epoch=start_epoch, epochs=end_epoch,
+                               validation_data=(xValid, yValid),
+                               callbacks=checkpoints)
+            else:
+                self.model.fit_generator(
+                    batch_generator(xTrain, yTrain, batch_size=batch),
+                    initial_epoch=start_epoch, epochs=end_epoch,
+                    steps_per_epoch=len(xTrain)//batch,
+                    validation_data=(xValid, yValid),
+                    callbacks=checkpoints)
             console.notify(str(epochs) + " Epochs Complete!",
                            "Training on", data.inPath, "with size", batch)
 

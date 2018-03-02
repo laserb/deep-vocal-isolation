@@ -59,6 +59,9 @@ class Config(object):
                                      "'rate': 0.1"
                                      "}")
 
+        # batch generator
+        self.batch_generator = self.get("BATCH_GENERATOR", "default")
+
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")
 
