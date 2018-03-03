@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import datetime
-from keras.callbacks import ModelCheckpoint, TensorBoard, Callback
+from keras.callbacks import ModelCheckpoint, TensorBoard, \
+    Callback, EarlyStopping
 from matplotlib.cm import get_cmap
 from PIL import Image
 import numpy as np
@@ -52,6 +53,12 @@ class Checkpointer(object):
 
     def error_visualization(self):
         return ErrorVisualization(self.bot)
+
+    def early_stopping(self):
+        params = eval(self.config.early_stopping)
+        return EarlyStopping(min_delta=params['min_delta'],
+                             patience=params['patience'],
+                             verbose=1)
 
 
 class ErrorVisualization(Callback):
