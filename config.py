@@ -23,6 +23,8 @@ class Config(object):
         self.batch = self.get_int("BATCH", 8)
         # directory to store tensorboard log files
         self.tensorboard = self.get("TENSORBOARD", "./tensorboard")
+        # verbosity level of the tensorboard checkpoint
+        self.tensorboard_info = self.get("TENSORBOARD_INFO", "default")
         # Phase iterations for reconstruction
         self.phase = self.get_int("PHASE", 10)
         # quit after training for specified epochs

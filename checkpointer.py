@@ -28,7 +28,18 @@ class Checkpointer(object):
         date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         log_dir = self.config.tensorboard + "/{}".format(date)
         log_dir = os.path.join(self.config.logs, log_dir)
+        board = getattr(self, "_tensorboard_" + self.config.tensorboard_info)
+        return board(log_dir)
+
+    def _tensorboard_default(self, log_dir):
         return TensorBoard(log_dir=log_dir)
+
+    def _tensorboard_full(self, log_dir):
+        return TensorBoard(log_dir=log_dir,
+                           write_images=True,
+                           write_grads=True,
+                           histogram_freq=2,
+                           batch_size=self.config.batch)
 
     def weights(self):
         filepath = os.path.join(os.path.dirname(self.config.weights),
