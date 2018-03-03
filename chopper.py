@@ -211,15 +211,15 @@ class Chopper(object):
 
         return mashupSlices, acapellaSlices
 
-    def _maximum(self, s):
-            return np.max(s)
-
-    def _mean(self, s):
-            return np.sum(s) / np.prod(s.shape)
-
     def infere(self, matrix, scale, **kwargs):
         slices = []
         for time in range(0, matrix.shape[1] // scale + 1):
             s = matrix[0:, time * scale: (time + 1) * scale]
             slices.append(s)
         return slices
+
+    def _maximum(self, s):
+            return np.max(s)
+
+    def _mean(self, s):
+            return np.sum(s) / np.prod(s.shape)

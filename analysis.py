@@ -359,16 +359,14 @@ class Analysis:
         self._spectrogram_info(spectrogram)
 
         chopNames = Chopper().get_all_chop_names()
-        default_params = "{'scale': 128, 'step': 64, 'slices':256," \
-                         " 'upper':False, 'filter':'maximum'}"
 
         if chopparams is not None:
             if isinstance(eval(chopparams), dict):
                 params = chopparams
             else:
-                params = default_params
+                params = self.config.chopparams
         else:
-            params = default_params
+            params = self.config.chopparams
 
         params = eval(params)
 

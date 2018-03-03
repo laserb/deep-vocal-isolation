@@ -40,7 +40,10 @@ class Config(object):
         self.chopname = self.get("CHOPNAME", "tile")
         # Parameters as a dictionary in string representation.
         # I.e. result of str(mydict).
-        self.chopparams = self.get("CHOPPARAMS", "{'scale': 128}")
+        self.chopparams = self.get("CHOPPARAMS", "{'scale': 128, "
+                                                 "'step': 64, 'slices':256, "
+                                                 "'upper':False, "
+                                                 "'filter':'maximum'}")
 
         # metrics
         self.metrics = self.get("METRICS", "mean_pred,max_pred")
@@ -73,6 +76,7 @@ class Config(object):
 
     def get_character(self):
         return [self.model, self.instrumental, self.chopname,
+                eval(self.chopparams).get('upper', False),
                 self.loss, self.normalizer]
 
     def create_logdir(self):
