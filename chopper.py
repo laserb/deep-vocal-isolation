@@ -56,7 +56,7 @@ class Chopper(object):
         slices = []
         for time in range(0, matrix.shape[1] // scale):
             if upper:
-                s = matrix[1:matrix.shape[0]//2, time * scale: (time + 1) * scale]
+                s = matrix[0:matrix.shape[0]//2, time * scale: (time + 1) * scale]
             else:
                 s = matrix[1:, time * scale: (time + 1) * scale]
             slices.append(s)
@@ -77,6 +77,22 @@ class Chopper(object):
                 s = matrix[freq * freq_step: freq * freq_step + scale,
                            time * time_step: time * time_step + scale]
                 slices.append(s)
+        return slices
+
+    def sliding_full(self, matrix, scale, step, upper=False, **kwargs):
+        if isinstance(step, int):
+            time_step = step
+        else:
+            time_step = step[0]
+        slices = []
+
+        for time in range(0, (matrix.shape[1] - scale) // time_step):
+            if upper:
+                s = matrix[0:matrix.shape[0] // 2,
+                    time * time_step: time * time_step + scale]
+            else:
+                s = matrix[1:, time * time_step: time * time_step + scale]
+            slices.append(s)
         return slices
 
     def filtered(self, mashup, acapella, scale, upper=False, filter="mean", **kwargs):
@@ -101,6 +117,32 @@ class Chopper(object):
                 if mean_deviation < filter_function(sa):
                     acapellaSlices.append(sa)
                     mashupSlices.append(sm)
+
+        return mashupSlices, acapellaSlices
+
+    def filtered_full(self, mashup, acapella, scale, upper=False, filter="mean", **kwargs):
+        filter_function = getattr(self, "_" + filter)
+
+        mashupSlices = []
+        acapellaSlices = []
+
+        slices = self.tile(acapella, scale, upper)
+        mean_deviation = np.sum(slices) / (len(slices) * np.prod(slices[0].shape))
+
+        for time in range(0, acapella.shape[1] // scale):
+            if upper:
+                sa = acapella[0:acapella.shape[0] // 2,
+                     time * scale: (time + 1) * scale]
+
+                sm = mashup[0:mashup.shape[0] // 2,
+                     time * scale: (time + 1) * scale]
+            else:
+                sa = acapella[1:, time * scale: (time + 1) * scale]
+                sm = mashup[1:, time * scale: (time + 1) * scale]
+
+            if mean_deviation < filter_function(sa):
+                acapellaSlices.append(sa)
+                mashupSlices.append(sm)
 
         return mashupSlices, acapellaSlices
 
