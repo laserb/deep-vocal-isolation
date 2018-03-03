@@ -3,6 +3,7 @@ from hashlib import md5
 from config import config
 from inspect import signature
 import numpy as np
+import random
 
 
 class Chopper(object):
@@ -56,7 +57,8 @@ class Chopper(object):
         slices = []
         for time in range(0, matrix.shape[1] // scale):
             if upper:
-                s = matrix[0:matrix.shape[0]//2, time * scale: (time + 1) * scale]
+                s = matrix[0:matrix.shape[0]//2,
+                           time * scale: (time + 1) * scale]
             else:
                 s = matrix[1:, time * scale: (time + 1) * scale]
             slices.append(s)
@@ -89,13 +91,15 @@ class Chopper(object):
         for time in range(0, (matrix.shape[1] - scale) // time_step):
             if upper:
                 s = matrix[0:matrix.shape[0] // 2,
-                    time * time_step: time * time_step + scale]
+                           time * time_step: time * time_step + scale]
             else:
                 s = matrix[1:, time * time_step: time * time_step + scale]
             slices.append(s)
         return slices
 
-    def filtered(self, mashup, acapella, scale, upper=False, filter="mean", **kwargs):
+    def filtered(self, mashup, acapella, scale,
+                 upper=False, filter="mean", **kwargs):
+
         filter_function = getattr(self, "_" + filter)
 
         mashupSlices = []
@@ -104,15 +108,16 @@ class Chopper(object):
         limit = acapella.shape[0] // 2 if upper else acapella.shape[0]
 
         slices = self.tile(acapella, scale, upper)
-        mean_deviation = np.sum(slices) / (len(slices) * np.prod(slices[0].shape))
+        mean_deviation = np.sum(slices) / \
+            (len(slices) * np.prod(slices[0].shape))
 
         for time in range(0, acapella.shape[1] // scale):
             for freq in range(0, limit // scale):
                 sa = acapella[freq * scale: (freq + 1) * scale,
-                     time * scale: (time + 1) * scale]
+                              time * scale: (time + 1) * scale]
 
                 sm = mashup[freq * scale: (freq + 1) * scale,
-                     time * scale: (time + 1) * scale]
+                            time * scale: (time + 1) * scale]
 
                 if mean_deviation < filter_function(sa):
                     acapellaSlices.append(sa)
@@ -120,22 +125,25 @@ class Chopper(object):
 
         return mashupSlices, acapellaSlices
 
-    def filtered_full(self, mashup, acapella, scale, upper=False, filter="mean", **kwargs):
+    def filtered_full(self, mashup, acapella, scale,
+                      upper=False, filter="mean", **kwargs):
+
         filter_function = getattr(self, "_" + filter)
 
         mashupSlices = []
         acapellaSlices = []
 
         slices = self.tile(acapella, scale, upper)
-        mean_deviation = np.sum(slices) / (len(slices) * np.prod(slices[0].shape))
+        mean_deviation = np.sum(slices) / \
+            (len(slices) * np.prod(slices[0].shape))
 
         for time in range(0, acapella.shape[1] // scale):
             if upper:
                 sa = acapella[0:acapella.shape[0] // 2,
-                     time * scale: (time + 1) * scale]
+                              time * scale: (time + 1) * scale]
 
                 sm = mashup[0:mashup.shape[0] // 2,
-                     time * scale: (time + 1) * scale]
+                            time * scale: (time + 1) * scale]
             else:
                 sa = acapella[1:, time * scale: (time + 1) * scale]
                 sm = mashup[1:, time * scale: (time + 1) * scale]
@@ -143,6 +151,53 @@ class Chopper(object):
             if mean_deviation < filter_function(sa):
                 acapellaSlices.append(sa)
                 mashupSlices.append(sm)
+
+        return mashupSlices, acapellaSlices
+
+    def random(self, mashup, acapella, scale, iterations,
+               upper=False, **kwargs):
+
+        mashupSlices = []
+        acapellaSlices = []
+
+        limit = acapella.shape[0] // 2 if upper else acapella.shape[0]
+
+        for i in range(0, iterations):
+            random_time = random.randrange(acapella.shape[1] - scale)
+            random_freq = random.randrange(limit - scale)
+
+            sa = acapella[random_freq: random_freq + scale,
+                          random_time: random_time + scale]
+
+            sm = mashup[random_freq: random_freq + scale,
+                        random_time: random_time + scale]
+
+            acapellaSlices.append(sa)
+            mashupSlices.append(sm)
+
+        return mashupSlices, acapellaSlices
+
+    def random_full(self, mashup, acapella, scale, slices,
+                    upper=False, **kwargs):
+
+        mashupSlices = []
+        acapellaSlices = []
+
+        for i in range(0, slices):
+            random_time = random.randrange(acapella.shape[1] - scale)
+
+            if upper:
+                sa = acapella[0:acapella.shape[0] // 2,
+                              random_time: random_time + scale]
+
+                sm = mashup[0:mashup.shape[0] // 2,
+                            random_time: random_time + scale]
+            else:
+                sa = acapella[1:, random_time: random_time + scale]
+                sm = mashup[1:, random_time: random_time + scale]
+
+            acapellaSlices.append(sa)
+            mashupSlices.append(sm)
 
         return mashupSlices, acapellaSlices
 
