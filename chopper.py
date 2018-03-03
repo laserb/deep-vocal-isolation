@@ -34,6 +34,16 @@ class Chopper(object):
                 return function(matrix, **params)
             return chop
 
+    def get_all_chop_names(self):
+        def filter_name(name):
+            return not (name.startswith('_')
+                        or name.startswith('get')
+                        or name == 'config'
+                        or name == 'params'
+                        or name == 'name')
+
+        return [name for name in dir(self) if filter_name(name)]
+
     def __hash__(self):
         config = self.name + ":" + self.params
         val = md5(config.encode()).hexdigest()
@@ -154,7 +164,7 @@ class Chopper(object):
 
         return mashupSlices, acapellaSlices
 
-    def random(self, mashup, acapella, scale, iterations,
+    def random(self, mashup, acapella, scale, slices,
                upper=False, **kwargs):
 
         mashupSlices = []
@@ -162,7 +172,7 @@ class Chopper(object):
 
         limit = acapella.shape[0] // 2 if upper else acapella.shape[0]
 
-        for i in range(0, iterations):
+        for i in range(0, slices):
             random_time = random.randrange(acapella.shape[1] - scale)
             random_freq = random.randrange(limit - scale)
 
