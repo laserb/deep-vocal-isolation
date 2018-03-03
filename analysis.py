@@ -27,7 +27,7 @@ class Analysis:
         self.analyse = "spectrograms"
         self.save = True
         self.analysisPath = self.config.analysis_path
-        self.content = "Analyse " + self.analyse + "\n"
+        self.content = "Analyse {} \n"
 
     def get(self):
         return getattr(self, self.analyse)
@@ -35,7 +35,7 @@ class Analysis:
     def run(self, analyse, save, args):
         self.analyse = analyse
         self.save = save
-
+        self.content = self.content.format(self.analyse)
         config_str = str(self.config)
         print(config_str)
 
@@ -50,7 +50,7 @@ class Analysis:
         currMax = 0
         currMaxI = 1
 
-        chop = Chopper().get()
+        chop = Chopper().get(False)
 
         slices = chop(spectrogram)
         for i in range(0, len(slices)):
