@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 from keras import losses
-from config import Config
+from config import config
 
 
 class Loss(object):
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.loss = self.config.loss
 
     def get(self):

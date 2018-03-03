@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 from hashlib import md5
+import datetime
 
 
 class Config(object):
@@ -21,7 +22,7 @@ class Config(object):
         # Batch size for training
         self.batch = self.get_int("BATCH", 8)
         # directory to store tensorboard log files
-        self.logs = self.get("LOGS", "./logs")
+        self.tensorboard = self.get("TENSORBOARD", "./tensorboard")
         # Phase iterations for reconstruction
         self.phase = self.get_int("PHASE", 10)
         # quit after training for specified epochs
@@ -66,6 +67,23 @@ class Config(object):
         self.normalizer_params = self.get("NORMALIZER_PARAMS",
                                           "{'percentile': 95}")
 
+        # Path to store all relevant data
+        self.log_base = self.get("LOGS", "./logs")
+        self.logs = self.log_base
+
+    def get_character(self):
+        return [self.model, self.instrumental, self.chopname,
+                self.loss, self.normalizer]
+
+    def create_logdir(self):
+        self.logs = os.path.join(self.log_base, self.get_logname())
+        if not os.path.exists(self.logs):
+            os.makedirs(self.logs)
+
+    def get_logname(self):
+        date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        return date + "_" + "-".join([str(x) for x in self.get_character()])
+
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
         self._values[var] = value
@@ -96,9 +114,15 @@ class Config(object):
         return result
 
     def __hash__(self):
-        val = md5(str(self).encode()).hexdigest()
+        # self is changing every time
+        # calculate hash only over character
+        val = md5(str(self.get_character()).encode()).hexdigest()
         return int(val, 16)
 
+
+# create singleton config
+config = Config()
+config.create_logdir()
 
 if __name__ == "__main__":
     config = Config()

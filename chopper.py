@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 from hashlib import md5
-from config import Config
+from config import config
 
 
 class Chopper(object):
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.name = self.config.chopname
         self.params = self.config.chopparams
 

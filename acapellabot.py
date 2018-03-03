@@ -26,7 +26,7 @@ import console
 import conversion
 
 from data import Data
-from config import Config
+from config import config
 from metrics import Metrics
 from checkpointer import Checkpointer
 from modeler import Modeler
@@ -44,7 +44,8 @@ class AcapellaBot:
         console.log("Model has", m.count_params(), "params")
         m.compile(loss=loss, optimizer='adam', metrics=metrics)
         m.summary(line_length=150)
-        plot_model(m, to_file='model.png', show_shapes=True)
+        plot_model(m, show_shapes=True,
+                   to_file=os.path.join(self.config.logs, 'model.png'))
         self.model = m
         # need to know so that we can avoid rounding errors with spectrogram
         # this should represent how much the input gets downscaled
@@ -85,14 +86,32 @@ class AcapellaBot:
                     if not save.lower().startswith("n"):
                         weightPath = ''.join(random.choice(string.digits)
                                              for _ in range(16)) + ".h5"
+                        os.path.join(os.path.dirname(config.weights),
+                                     weightPath)
                         console.log("Saving intermediate weights to",
                                     weightPath)
                         self.saveWeights(weightPath)
+        return self.model.evaluate(xValid, yValid, batch_size=batch)
+
+    def run(self, data):
+        metrics = self.train(data, self.config.epochs,
+                             self.config.batch, self.config.start_epoch)
+        self.saveWeights(self.config.weights)
+        metrics_path = os.path.join(self.config.logs, "metrics")
+        with open(metrics_path, "w") as f:
+            metric_names = ["loss"] + self.config.metrics.split(",")
+            for i in range(len(metrics)):
+                f.write("val_%s %s\n" % (metric_names[i], metrics[i]))
+        return metrics
 
     def saveWeights(self, path):
+        if not os.path.isabs(path):
+            path = os.path.join(self.config.logs, path)
         self.model.save_weights(path, overwrite=True)
 
     def loadWeights(self, path):
+        if not os.path.isabs(path):
+            path = os.path.join(self.config.logs, path)
         self.model.load_weights(path)
 
     def isolateVocals(self, path, fftWindowSize, phaseIterations=10):
@@ -182,11 +201,11 @@ class AcapellaBot:
 
 if __name__ == "__main__":
     files = sys.argv[1:]
-    config = Config()
     config_str = str(config)
     print(config_str)
     # save current environment for later usage
-    with open("./envs/last", "w") as f:
+    last_env = os.path.join(config.logs, "env")
+    with open(last_env, "w") as f:
         f.write(config_str)
 
     acapellabot = AcapellaBot(config)
@@ -200,9 +219,7 @@ if __name__ == "__main__":
         console.h1("Loading Data")
         data = Data()
         console.h1("Training Model")
-        acapellabot.train(data, config.epochs,
-                          config.batch, config.start_epoch)
-        acapellabot.saveWeights(config.weights)
+        acapellabot.run(data)
     elif len(files) > 0:
         console.log("Weights provided; performing inference on " +
                     str(files) + "...")

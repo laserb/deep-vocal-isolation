@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 import keras.backend as K
-from config import Config
+from config import config
 
 
 class Metrics(object):
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.metrics = self.config.metrics
 
     def get(self):

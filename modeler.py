@@ -2,12 +2,12 @@
 from keras.models import Model
 from keras.layers import Input, Dropout, Conv2D, BatchNormalization, \
         UpSampling2D, Concatenate, LeakyReLU
-from config import Config
+from config import config
 
 
 class Modeler(object):
     def __init__(self):
-        self.config = Config()
+        self.config = config
         self.model = self.config.model
         self.params = self.config.model_params
 
