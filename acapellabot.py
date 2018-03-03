@@ -234,6 +234,11 @@ if __name__ == "__main__":
     if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
                     config.data + "...")
+        if config.batch_generator.startswith("random") \
+                and config.epoch_steps == 0:
+            console.error("EPOCH_STEPS is not set,"
+                          " but cannot be determined from data.")
+            exit(1)
         if config.load:
             console.h1("Loading Weights")
             acapellabot.loadWeights(config.weights)
