@@ -50,7 +50,7 @@ class Analysis:
         currMax = 0
         currMaxI = 1
 
-        chop = Chopper.get()
+        chop = Chopper().get()
 
         slices = chop(spectrogram)
         for i in range(0, len(slices)):
