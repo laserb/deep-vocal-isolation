@@ -139,7 +139,6 @@ class Config(object):
 
 # create singleton config
 config = Config()
-config.create_logdir()
 
 if __name__ == "__main__":
     config = Config()

@@ -47,8 +47,6 @@ class AcapellaBot:
         console.log("Model has", m.count_params(), "params")
         m.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         m.summary(line_length=150)
-        plot_model(m, show_shapes=True,
-                   to_file=os.path.join(self.config.logs, 'model.png'))
         self.model = m
         # need to know so that we can avoid rounding errors with spectrogram
         # this should represent how much the input gets downscaled
@@ -115,8 +113,19 @@ class AcapellaBot:
         return self.model.evaluate(xValid, yValid, batch_size=batch)
 
     def run(self, data):
+        self.config.create_logdir()
+        # save current environment for later usage
+        last_env = os.path.join(self.config.logs, "env")
+        config_str = str(self.config)
+        with open(last_env, "w") as f:
+            f.write(config_str)
+
+        plot_model(self.model, show_shapes=True,
+                   to_file=os.path.join(self.config.logs, 'model.png'))
+
         metrics = self.train(data, self.config.epochs,
                              self.config.batch, self.config.start_epoch)
+
         self.saveWeights(self.config.weights)
         metrics_path = os.path.join(self.config.logs, "metrics")
         with open(metrics_path, "w") as f:
@@ -224,10 +233,6 @@ if __name__ == "__main__":
     files = sys.argv[1:]
     config_str = str(config)
     print(config_str)
-    # save current environment for later usage
-    last_env = os.path.join(config.logs, "env")
-    with open(last_env, "w") as f:
-        f.write(config_str)
 
     acapellabot = AcapellaBot(config)
 
