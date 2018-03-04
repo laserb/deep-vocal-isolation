@@ -154,7 +154,7 @@ class AcapellaBot:
         chopper = Chopper()
         chopper.name = "infere"
         chopper.params = "{'scale': %d}" % self.config.inference_slice
-        chop = chopper.get()
+        chop = chopper.get(both=False)
 
         slices = chop(spectrogram)
 
