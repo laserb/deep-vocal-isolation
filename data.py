@@ -49,7 +49,7 @@ class Data:
         self.inPath = self.config.data
         self.fftWindowSize = self.config.fft
         self.trainingSplit = self.config.split
-        self.instrumental = self.config.instrumental
+        self.isInstrumental = self.config.instrumental
         self.mashup = []
         self.acapella = []
         self.instrumental = []
@@ -79,7 +79,7 @@ class Data:
         if end is None:
             end = len(self.mashup)
         x = self.mashup[int(start): int(end)]
-        if self.instrumental:
+        if self.isInstrumental:
             y = self.instrumental[int(start): int(end)]
         else:
             y = self.acapella[int(start): int(end)]
@@ -100,7 +100,7 @@ class Data:
         if end is None:
             end = len(self.mashup)
         x = self.mashup[int(start): int(end)]
-        if self.instrumental:
+        if self.isInstrumental:
             y = self.instrumental[int(start): int(end)]
         else:
             y = self.acapella[int(start): int(end)]
