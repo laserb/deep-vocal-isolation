@@ -1,0 +1,15 @@
+chopname:
+    - "tile"
+    - "full"
+    - "sliding"
+chopparams:
+    - "{'scale': 128, 'step': 64, 'slices':256, 'upper':False, 'filter':'maximum'}"
+    - "{'scale': 128, 'step': 64, 'slices':256, 'upper':True, 'filter':'maximum'}"
+batch_generator:
+    - "keras"
+model:
+    - "leaky_dropout"
+model_params:
+    - "{ 'alpha1': 0.1, 'alpha2': 0.01, 'rate': 0.1}"
+epochs:
+    - 10
