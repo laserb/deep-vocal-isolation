@@ -109,8 +109,7 @@ class Data:
                     console.info("Created spectrogram for", fileName,
                                  "with shape",
                                  spectrogram.shape)
-                    mashupSlices = chop(mashup)
-                    acapellaSlices = chop(acapella)
+                    mashupSlices, acapellaSlices = chop(mashup, acapella)
                     mashupSlices, acapellaSlices = \
                         normalize(mashupSlices, acapellaSlices)
                     self.x.extend(mashupSlices)

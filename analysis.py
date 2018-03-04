@@ -27,7 +27,7 @@ class Analysis:
         self.analyse = "spectrograms"
         self.save = True
         self.analysisPath = self.config.analysis_path
-        self.content = "Analyse " + self.analyse + "\n"
+        self.content = "Analyse {} \n"
 
     def get(self):
         return getattr(self, self.analyse)
@@ -35,7 +35,7 @@ class Analysis:
     def run(self, analyse, save, args):
         self.analyse = analyse
         self.save = save
-
+        self.content = self.content.format(self.analyse)
         config_str = str(self.config)
         print(config_str)
 
@@ -50,7 +50,7 @@ class Analysis:
         currMax = 0
         currMaxI = 1
 
-        chop = Chopper().get()
+        chop = Chopper().get(False)
 
         slices = chop(spectrogram)
         for i in range(0, len(slices)):
@@ -345,6 +345,50 @@ class Analysis:
                         (np.max(spectrum) - np.min(spectrum)), 0, 1)
         self.write("Shape of spectrogram is (%d, %d)"
                    % (image.shape[0], image.shape[1]))
+
+    def _chopper_info(self, mashupSlices, acapellaSlices):
+        self.write("chop name: " + self.config.chopname, True)
+        self.write("slices created: %d" % len(mashupSlices), True)
+        self.write("Shape of first slice: %s" % (mashupSlices[0].shape,), True)
+        self.write("Shape of last slice: %s"
+                   % (mashupSlices[len(mashupSlices) - 1].shape,), True)
+        self.write("----------", True)
+
+    def chopper(self, file, chopparams=None):
+        spectrogram = self._create_spectrogram_from_file(file)
+        self._spectrogram_info(spectrogram)
+
+        chopNames = Chopper().get_all_chop_names()
+
+        if chopparams is not None:
+            if isinstance(eval(chopparams), dict):
+                params = chopparams
+            else:
+                params = self.config.chopparams
+        else:
+            params = self.config.chopparams
+
+        params = eval(params)
+
+        params['upper'] = False
+        self.config.chopparams = str(params)
+        self.write("\nchop params: " + self.config.chopparams + "\n", True)
+
+        for name in chopNames:
+            self.config.chopname = name
+            chop = Chopper().get()
+            mashupSlices, acapellaSlices = chop(spectrogram, spectrogram)
+            self._chopper_info(mashupSlices, acapellaSlices)
+
+        params['upper'] = True
+        self.config.chopparams = str(params)
+        self.write("\nchop params: " + self.config.chopparams + "\n", True)
+
+        for name in chopNames:
+            self.config.chopname = name
+            chop = Chopper().get()
+            mashupSlices, acapellaSlices = chop(spectrogram, spectrogram)
+            self._chopper_info(mashupSlices, acapellaSlices)
 
 
 if __name__ == "__main__":
