@@ -356,7 +356,7 @@ class Analysis:
         self.write("slices created: %d" % len(mashupSlices), True)
         self.write("Shape of first slice: %s" % (mashupSlices[0].shape,), True)
         self.write("Shape of last slice: %s"
-                   % (mashupSlices[len(mashupSlices) - 1].shape,), True)
+                   % (mashupSlices[-1].shape,), True)
         self.write("----------", True)
 
     def chopper(self, file, chopparams=None):

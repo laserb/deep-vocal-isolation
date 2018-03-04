@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import datetime
-from keras.callbacks import ModelCheckpoint, TensorBoard, Callback
+from keras.callbacks import ModelCheckpoint, TensorBoard, \
+    Callback, EarlyStopping
 from matplotlib.cm import get_cmap
 from PIL import Image
 import numpy as np
@@ -28,7 +29,18 @@ class Checkpointer(object):
         date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         log_dir = self.config.tensorboard + "/{}".format(date)
         log_dir = os.path.join(self.config.logs, log_dir)
+        board = getattr(self, "_tensorboard_" + self.config.tensorboard_info)
+        return board(log_dir)
+
+    def _tensorboard_default(self, log_dir):
         return TensorBoard(log_dir=log_dir)
+
+    def _tensorboard_full(self, log_dir):
+        return TensorBoard(log_dir=log_dir,
+                           write_images=True,
+                           write_grads=True,
+                           histogram_freq=2,
+                           batch_size=self.config.batch)
 
     def weights(self):
         filepath = os.path.join(os.path.dirname(self.config.weights),
@@ -41,6 +53,12 @@ class Checkpointer(object):
 
     def error_visualization(self):
         return ErrorVisualization(self.bot)
+
+    def early_stopping(self):
+        params = eval(self.config.early_stopping)
+        return EarlyStopping(min_delta=params['min_delta'],
+                             patience=params['patience'],
+                             verbose=1)
 
 
 class ErrorVisualization(Callback):
