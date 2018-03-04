@@ -25,7 +25,7 @@ from keras.utils import plot_model
 import console
 import conversion
 
-from data import Data
+from data import Data, remove_track_boundaries
 from config import config
 from metrics import Metrics
 from checkpointer import Checkpointer
@@ -34,6 +34,7 @@ from loss import Loss
 from optimizer import Optimizer
 from chopper import Chopper
 from normalizer import Normalizer
+from batch import Batch
 
 
 class AcapellaBot:
@@ -60,14 +61,32 @@ class AcapellaBot:
         self.xValid, self.yValid = xValid, yValid
         checkpointer = Checkpointer(self)
         checkpoints = checkpointer.get()
+        if self.config.batch_generator != "keras":
+            batch_generator = Batch().get(xValid.shape[1:])
+        if self.config.epoch_steps:
+            epoch_steps = self.config.epoch_steps
+        else:
+            epoch_steps = remove_track_boundaries(xTrain).shape[0]
+        epoch_steps = epoch_steps // batch
         while epochs > 0:
             end_epoch = start_epoch + epochs
             console.log("Training for", epochs, "epochs on",
-                        len(xTrain), "examples")
-            self.model.fit(xTrain, yTrain, batch_size=batch,
-                           initial_epoch=start_epoch, epochs=end_epoch,
-                           validation_data=(xValid, yValid),
-                           callbacks=checkpoints)
+                        epoch_steps * batch, "examples")
+            console.log("Validate on", len(xValid), "examples")
+            if self.config.batch_generator == "keras":
+                xTrain = remove_track_boundaries(xTrain)
+                yTrain = remove_track_boundaries(yTrain)
+                self.model.fit(xTrain, yTrain, batch_size=batch,
+                               initial_epoch=start_epoch, epochs=end_epoch,
+                               validation_data=(xValid, yValid),
+                               callbacks=checkpoints)
+            else:
+                self.model.fit_generator(
+                    batch_generator(xTrain, yTrain, batch_size=batch),
+                    initial_epoch=start_epoch, epochs=end_epoch,
+                    steps_per_epoch=epoch_steps,
+                    validation_data=(xValid, yValid),
+                    callbacks=checkpoints)
             console.notify(str(epochs) + " Epochs Complete!",
                            "Training on", data.inPath, "with size", batch)
 
@@ -215,6 +234,11 @@ if __name__ == "__main__":
     if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
                     config.data + "...")
+        if config.batch_generator.startswith("random") \
+                and config.epoch_steps == 0:
+            console.error("EPOCH_STEPS is not set,"
+                          " but cannot be determined from data.")
+            exit(1)
         if config.load:
             console.h1("Loading Weights")
             acapellabot.loadWeights(config.weights)

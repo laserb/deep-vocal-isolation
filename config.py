@@ -59,6 +59,10 @@ class Config(object):
                                      "'rate': 0.1"
                                      "}")
 
+        # batch generator
+        self.batch_generator = self.get("BATCH_GENERATOR", "random")
+        self.epoch_steps = self.get_int("EPOCH_STEPS", 50000)
+
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")
 

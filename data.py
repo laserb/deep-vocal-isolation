@@ -36,6 +36,13 @@ def fileIsAcapella(fileName):
 NUMBER_OF_KEYS = 12  # number of keys to iterate over
 
 
+def remove_track_boundaries(tracks):
+    slices = []
+    for track in tracks:
+        slices.extend(track)
+    return np.array(slices)
+
+
 class Data:
     def __init__(self):
         self.config = config
@@ -43,90 +50,130 @@ class Data:
         self.fftWindowSize = self.config.fft
         self.trainingSplit = self.config.split
         self.instrumental = self.config.instrumental
-        self.x = []
-        self.y = []
+        self.mashup = []
+        self.acapella = []
+        self.instrumental = []
+
+        chopper = Chopper()
+        self.chop = chopper.get()
+        normalizer = Normalizer()
+        self.normalize = normalizer.get()
+
         self.load()
 
     def train(self):
-        return (self.x[:int(len(self.x) * self.trainingSplit)],
-                self.y[:int(len(self.y) * self.trainingSplit)])
+        length = len(self.mashup) * self.trainingSplit
+        if self.config.batch_generator.startswith("random"):
+            return self.prepare_random_data(end=length)
+        else:
+            return self.prepare_data(end=length)
 
     def valid(self):
-        return (self.x[int(len(self.x) * self.trainingSplit):],
-                self.y[int(len(self.y) * self.trainingSplit):])
+        xValid, yValid = \
+            self.prepare_data(start=len(self.mashup) * self.trainingSplit)
+        xValid = remove_track_boundaries(xValid)
+        yValid = remove_track_boundaries(yValid)
+        return xValid, yValid
 
-    def get_data_path(self, data_hash):
+    def prepare_data(self, start=0, end=None, post_process=False):
+        if end is None:
+            end = len(self.mashup)
+        x = self.mashup[int(start): int(end)]
         if self.instrumental:
-            type_string = "instrumental"
+            y = self.instrumental[int(start): int(end)]
         else:
-            type_string = "acapella"
-        return os.path.join(self.inPath,
-                            "data_%s_%s.h5" % (type_string, data_hash))
+            y = self.acapella[int(start): int(end)]
+        mashupSlices = []
+        outputSlices = []
+        for mashup, output in zip(x, y):
+            xSlices, ySlices = self.chop(mashup, output)
+            xSlices, ySlices = \
+                self.normalize(xSlices, ySlices)
+            # Add a "channels" channel to please the network
+            xSlices = np.array(xSlices)[:, :, :, np.newaxis]
+            ySlices = np.array(ySlices)[:, :, :, np.newaxis]
+            mashupSlices.append(xSlices)
+            outputSlices.append(ySlices)
+        return mashupSlices, outputSlices
+
+    def prepare_random_data(self, start=0, end=None, post_process=False):
+        if end is None:
+            end = len(self.mashup)
+        x = self.mashup[int(start): int(end)]
+        if self.instrumental:
+            y = self.instrumental[int(start): int(end)]
+        else:
+            y = self.acapella[int(start): int(end)]
+        return x, y
+
+    def get_data_path(self):
+        return os.path.join(self.inPath, "data_%s.h5" % self.fftWindowSize)
 
     def load(self, saveDataAsH5=True):
         def checkFilename(f):
             return (f.endswith(".mp3") or f.endswith("_all.wav")) \
                 and not f.startswith(".")
 
-        chopper = Chopper()
-        chopper_hash = hash(chopper)
-        normalizer = Normalizer()
-        normalizer_hash = hash(normalizer)
-        data_hash = chopper_hash + normalizer_hash
-        print("Data hash: %s" % data_hash)
-        h5Path = self.get_data_path(data_hash)
+        h5Path = self.get_data_path()
         if os.path.isfile(h5Path):
             h5f = h5py.File(h5Path, "r")
-            self.x = h5f["x"][:]
-            self.y = h5f["y"][:]
+            mashup = h5f["mashup"]
+            acapella = h5f["acapella"]
+            instrumental = h5f["instrumental"]
+            for track in sorted(mashup.keys()):
+                self.mashup.append(mashup[track])
+                self.acapella.append(acapella[track])
+                self.instrumental.append(instrumental[track])
         else:
-            chop = chopper.get()
-            normalize = normalizer.get()
             for dirPath, dirNames, fileNames in os.walk(self.inPath):
                 filteredFiles = filter(checkFilename, fileNames)
                 for fileName in filteredFiles:
-                    if self.instrumental:
-                        acapella_file = fileName.replace("_all.wav",
+                    fileName = os.path.join(self.inPath, fileName)
+                    acapella_file = fileName.replace("_all.wav",
+                                                     "_acapella.wav")
+                    instrumental_file = fileName.replace("_all.wav",
                                                          "_instrumental.wav")
-                    else:
-                        acapella_file = fileName.replace("_all.wav",
-                                                         "_acapella.wav")
-                    if not os.path.exists(os.path.join(self.inPath,
-                                                       acapella_file)):
+                    if not all([os.path.exists(acapella_file),
+                                os.path.exists(instrumental_file)]):
                         continue
-                    audio, sampleRate = conversion.loadAudioFile(
-                        os.path.join(self.inPath, fileName))
+                    audio, sampleRate = conversion.loadAudioFile(fileName)
                     spectrogram, phase = conversion.audioFileToSpectrogram(
                         audio, self.fftWindowSize)
                     mashup = spectrogram
 
-                    audio, sampleRate = conversion.loadAudioFile(
-                        os.path.join(self.inPath, acapella_file))
+                    audio, sampleRate = conversion.loadAudioFile(acapella_file)
                     spectrogram, phase = conversion.audioFileToSpectrogram(
                         audio, self.fftWindowSize)
                     acapella = spectrogram
 
+                    audio, sampleRate = \
+                        conversion.loadAudioFile(instrumental_file)
+                    spectrogram, phase = conversion.audioFileToSpectrogram(
+                        audio, self.fftWindowSize)
+                    instrumental = spectrogram
+
                     console.info("Created spectrogram for", fileName,
                                  "with shape",
                                  spectrogram.shape)
-                    mashupSlices, acapellaSlices = chop(mashup, acapella)
-                    mashupSlices, acapellaSlices = \
-                        normalize(mashupSlices, acapellaSlices)
-                    self.x.extend(mashupSlices)
-                    self.y.extend(acapellaSlices)
-            console.info("Created", len(self.x), "total slices so far")
-            # Add a "channels" channel to please the network
-            self.x = np.array(self.x)[:, :, :, np.newaxis]
-            self.y = np.array(self.y)[:, :, :, np.newaxis]
+                    self.mashup.append(mashup)
+                    self.acapella.append(acapella)
+                    self.instrumental.append(instrumental)
+            console.info("Created", len(self.mashup), "total spectras")
             # Save to file
             if saveDataAsH5:
-                self.save(data_hash)
+                self.save()
 
-    def save(self, data_hash):
-        h5Path = self.get_data_path(data_hash)
+    def save(self):
+        h5Path = self.get_data_path()
         h5f = h5py.File(h5Path, "w")
-        h5f.create_dataset("x", data=self.x)
-        h5f.create_dataset("y", data=self.y)
+        mashup = h5f.create_group("mashup")
+        acapella = h5f.create_group("acapella")
+        instrumental = h5f.create_group("instrumental")
+        for i in range(len(self.mashup)):
+            track = 'track{:d}'.format(i)
+            mashup.create_dataset(name=track, data=self.mashup[i])
+            acapella.create_dataset(name=track, data=self.acapella[i])
+            instrumental.create_dataset(name=track, data=self.instrumental[i])
         h5f.close()
 
 
