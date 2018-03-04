@@ -62,6 +62,10 @@ class Config(object):
         # loss
         self.loss = self.get("LOSS", "mean_squared_error")
 
+        # optimizer
+        self.optimizer = self.get("OPTIMIZER", "adam")
+        self.optimizer_params = self.get("OPTIMIZER_PARAMS", "")
+
         # directory for analysis files
         self.analysis_path = self.get("ANALYSIS_PATH", "./analysis")
 
@@ -77,7 +81,7 @@ class Config(object):
     def get_character(self):
         return [self.model, self.instrumental, self.chopname,
                 eval(self.chopparams).get('upper', False),
-                self.loss, self.normalizer]
+                self.loss, self.optimizer, self.normalizer]
 
     def create_logdir(self):
         self.logs = os.path.join(self.log_base, self.get_logname())

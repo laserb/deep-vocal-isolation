@@ -31,6 +31,7 @@ from metrics import Metrics
 from checkpointer import Checkpointer
 from modeler import Modeler
 from loss import Loss
+from optimizer import Optimizer
 from chopper import Chopper
 from normalizer import Normalizer
 
@@ -41,8 +42,9 @@ class AcapellaBot:
         metrics = Metrics().get()
         m = Modeler().get()
         loss = Loss().get()
+        optimizer = Optimizer().get()
         console.log("Model has", m.count_params(), "params")
-        m.compile(loss=loss, optimizer='adam', metrics=metrics)
+        m.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         m.summary(line_length=150)
         plot_model(m, show_shapes=True,
                    to_file=os.path.join(self.config.logs, 'model.png'))
