@@ -85,7 +85,7 @@ class Config(object):
 
         # Path to store all relevant data
         self.log_base = self.get("LOGS", "./logs")
-        self.logs = self.log_base
+        self.logs = os.path.join(self.log_base, "last")
 
     def get_character(self):
         return [self.model, self.instrumental, self.chopname,
@@ -96,6 +96,11 @@ class Config(object):
         self.logs = os.path.join(self.log_base, self.get_logname())
         if not os.path.exists(self.logs):
             os.makedirs(self.logs)
+        # create symlink
+        last_path = os.path.join(self.log_base, "last")
+        if os.path.lexists(last_path):
+            os.remove(last_path)
+        os.symlink(os.path.abspath(self.logs), last_path)
 
     def get_logname(self):
         date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
