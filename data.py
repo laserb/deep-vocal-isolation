@@ -54,11 +54,6 @@ class Data:
         self.acapella = []
         self.instrumental = []
 
-        chopper = Chopper()
-        self.chop = chopper.get()
-        normalizer = Normalizer()
-        self.normalize = normalizer.get()
-
         self.load()
 
     def train(self):
@@ -76,6 +71,9 @@ class Data:
         return xValid, yValid
 
     def prepare_data(self, start=0, end=None, post_process=False):
+        chop = Chopper().get()
+        normalize = Normalizer().get()
+
         if end is None:
             end = len(self.mashup)
         x = self.mashup[int(start): int(end)]
@@ -86,9 +84,9 @@ class Data:
         mashupSlices = []
         outputSlices = []
         for mashup, output in zip(x, y):
-            xSlices, ySlices = self.chop(mashup, output)
+            xSlices, ySlices = chop(mashup, output)
             xSlices, ySlices = \
-                self.normalize(xSlices, ySlices)
+                normalize(xSlices, ySlices)
             # Add a "channels" channel to please the network
             xSlices = np.array(xSlices)[:, :, :, np.newaxis]
             ySlices = np.array(ySlices)[:, :, :, np.newaxis]
