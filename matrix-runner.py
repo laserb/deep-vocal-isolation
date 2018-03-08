@@ -41,6 +41,7 @@ class MatrixRunner(object):
         names = sorted(list(current_config.keys()))
         values = [current_config[name] for name in names]
         self.resultwriter.writerow(values + metrics)
+        self.csvfile.flush()
 
     def run(self):
         self.data = self.read_config(self.config_path)
@@ -49,8 +50,8 @@ class MatrixRunner(object):
             combinations *= len(values)
         console.warn("Running on ", combinations, " combinations.")
 
-        with open(self.outfile, "w") as csvfile:
-            self.resultwriter = csv.writer(csvfile, delimiter='|',
+        with open(self.outfile, "w") as self.csvfile:
+            self.resultwriter = csv.writer(self.csvfile, delimiter='|',
                                            quotechar='"',
                                            quoting=csv.QUOTE_MINIMAL)
 
@@ -59,6 +60,7 @@ class MatrixRunner(object):
             self.resultwriter.writerow(headers)
             lines = ["-"*len(head) for head in headers]
             self.resultwriter.writerow(lines)
+            self.csvfile.flush()
 
             self.train_data = Data()
             for current_config in self.create_config(list(self.data.keys())):
