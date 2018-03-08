@@ -2,6 +2,7 @@
 import yaml
 import csv
 import sys
+import os
 import console
 from config import config
 from data import Data
@@ -13,7 +14,7 @@ class MatrixRunner(object):
         self.config_path = config_path
         self.config = config
         self.train_data = None
-        self.outfile = "result.md"
+        self.outfile = os.path.join(self.config.log_base, "result.md")
 
     def read_config(self, path):
         with open(path, 'r') as stream:
