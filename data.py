@@ -1,11 +1,8 @@
 """
 Loads and stores mashup data given a folder full of acapellas and instrumentals
 Assumes that all audio clips (wav, mp3) in the folder
-a) have their Camelot key as the first token in the filename
-b) are in the same BPM
-c) have "acapella" somewhere in the filename if they're an acapella, and are otherwise instrumental  # noqa: E501
-d) all have identical arrangements
-e) have the same sample rate
+a) have "acapella" in the filename if they're an acapella
+b) have "instrumental" in the filename if they're an instrumentalü
 """
 import sys
 import os
@@ -17,23 +14,6 @@ import conversion
 from config import config
 from chopper import Chopper
 from normalizer import Normalizer
-
-# Modify these functions if your data is in a different format
-
-
-def keyOfFile(fileName):
-    firstToken = int(fileName.split()[0])
-    if 0 < firstToken <= NUMBER_OF_KEYS:
-        return firstToken
-    console.warn("File", fileName, "doesn't specify its key, ignoring..")
-    return None
-
-
-def fileIsAcapella(fileName):
-    return "acapella" in fileName.lower()
-
-
-NUMBER_OF_KEYS = 12  # number of keys to iterate over
 
 
 def remove_track_boundaries(tracks):
