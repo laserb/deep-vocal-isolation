@@ -45,12 +45,15 @@ class MatrixRunner(object):
     def train(self, current_config):
         repetition = current_config.pop("repeat", None)
         acapellabot = AcapellaBot(self.config)
-        metrics = acapellabot.run(self.train_data)
+        history = acapellabot.run(self.train_data)
+        metrics = [history.history["val_" + name][-1]
+                   for name in self.metric_names]
+        min_loss = min(history.history["val_loss"])
         names = sorted(list(current_config.keys()))
         values = [current_config[name] for name in names]
         if repetition is not None:
             values = [repetition] + values
-        self.resultwriter.writerow(values + metrics)
+        self.resultwriter.writerow(values + [min_loss] + metrics)
         self.csvfile.flush()
 
     def run(self):
@@ -66,8 +69,9 @@ class MatrixRunner(object):
                                            quotechar='"',
                                            quoting=csv.QUOTE_MINIMAL)
 
-            metric_names = ["loss"] + self.config.metrics.split(",")
-            headers = sorted(list(self.data.keys())) + metric_names
+            self.metric_names = ["loss"] + self.config.metrics.split(",")
+            headers = sorted(list(self.data.keys())) \
+                + ["min_loss"] + self.metric_names
             if self.repeat is not None:
                 headers = ["i"] + headers
             self.resultwriter.writerow(headers)

@@ -74,12 +74,13 @@ class AcapellaBot:
             if self.config.batch_generator == "keras":
                 xTrain = remove_track_boundaries(xTrain)
                 yTrain = remove_track_boundaries(yTrain)
-                self.model.fit(xTrain, yTrain, batch_size=batch,
-                               initial_epoch=start_epoch, epochs=end_epoch,
-                               validation_data=(xValid, yValid),
-                               callbacks=checkpoints)
+                history = self.model.fit(
+                    xTrain, yTrain, batch_size=batch,
+                    initial_epoch=start_epoch, epochs=end_epoch,
+                    validation_data=(xValid, yValid),
+                    callbacks=checkpoints)
             else:
-                self.model.fit_generator(
+                history = self.model.fit_generator(
                     batch_generator(xTrain, yTrain, batch_size=batch),
                     initial_epoch=start_epoch, epochs=end_epoch,
                     steps_per_epoch=epoch_steps,
@@ -110,7 +111,7 @@ class AcapellaBot:
                         console.log("Saving intermediate weights to",
                                     weightPath)
                         self.saveWeights(weightPath)
-        return self.model.evaluate(xValid, yValid, batch_size=batch)
+        return history
 
     def run(self, data):
         self.config.create_logdir()
@@ -123,16 +124,17 @@ class AcapellaBot:
         plot_model(self.model, show_shapes=True,
                    to_file=os.path.join(self.config.logs, 'model.png'))
 
-        metrics = self.train(data, self.config.epochs,
+        history = self.train(data, self.config.epochs,
                              self.config.batch, self.config.start_epoch)
 
         self.saveWeights(self.config.weights)
         metrics_path = os.path.join(self.config.logs, "metrics")
         with open(metrics_path, "w") as f:
-            metric_names = ["loss"] + self.config.metrics.split(",")
-            for i in range(len(metrics)):
-                f.write("val_%s %s\n" % (metric_names[i], metrics[i]))
-        return metrics
+            metric_names = list(history.history.keys())
+            for name in metric_names:
+                f.write("%s %s\n" % (name,
+                                     history.history[name][-1]))
+        return history
 
     def saveWeights(self, path):
         if not os.path.isabs(path):
