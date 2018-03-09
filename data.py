@@ -61,17 +61,23 @@ class Data:
         if self.config.batch_generator.startswith("random"):
             return self.prepare_random_data(end=length)
         else:
-            return self.prepare_data(end=length)
+            chop = Chopper().get()
+            return self.prepare_data(chop, end=length)
 
     def valid(self):
-        xValid, yValid = \
-            self.prepare_data(start=len(self.mashup) * self.trainingSplit)
+        chopper = Chopper()
+        params = eval(chopper.params)
+        chopper.name = "full"
+        params["upper"] = False
+        chopper.params = str(params)
+        chop = chopper.get()
+        start = len(self.mashup) * self.trainingSplit
+        xValid, yValid = self.prepare_data(chop, start=start)
         xValid = remove_track_boundaries(xValid)
         yValid = remove_track_boundaries(yValid)
         return xValid, yValid
 
-    def prepare_data(self, start=0, end=None, post_process=False):
-        chop = Chopper().get()
+    def prepare_data(self, chop, start=0, end=None, post_process=False):
         normalize = Normalizer().get()
 
         if end is None:
