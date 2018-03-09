@@ -2,7 +2,6 @@
 Various utilities for pretty console output
 Ported nigh-verbatim from a similar file I use for node
 """
-import os
 import time as sysTime
 
 
@@ -81,8 +80,3 @@ def timeEnd(key):
 def notify(*args):
     # Play bell
     print('\a')
-    # Attempt to send a notification
-    # (will fail, but not crash, if not on macOS)
-    os.system("""
-          osascript -e 'display notification "{}" with title "{}"'
-          """.format(args[0], fmt(args[1:])))
