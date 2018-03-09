@@ -3,11 +3,14 @@ import yaml
 import csv
 import sys
 import os
-import console
-from config import config
-from data import Data
-from acapellabot import AcapellaBot
-import matplotlib.pyplot as plt
+import matplotlib
+# The default tk backend does not work without X server
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # noqa: E402
+import console  # noqa: E402
+from config import config  # noqa: E402
+from data import Data  # noqa: E402
+from acapellabot import AcapellaBot  # noqa: E402
 
 
 class MatrixRunner(object):
