@@ -60,7 +60,7 @@ class AcapellaBot:
         checkpointer = Checkpointer(self)
         checkpoints = checkpointer.get()
         if self.config.batch_generator != "keras":
-            batch_generator = Batch().get(xValid.shape[1:])
+            batch_generator = Batch().get()
         if self.config.epoch_steps:
             epoch_steps = self.config.epoch_steps
         else:

@@ -14,8 +14,8 @@ class Batch(object):
         normalizer = Normalizer()
         self.normalize = normalizer.get()
 
-    def get(self, shape):
-        return getattr(self, self.batch_generator)(shape)
+    def get(self):
+        return getattr(self, self.batch_generator)()
 
     # If keras is set as batch generator
     # then the default keras functionality is used
@@ -23,10 +23,30 @@ class Batch(object):
     def keras(self):
         pass
 
+    def _calculate_shape(self, shape):
+        shape = [*shape, 1]
+        chopparams = eval(self.config.chopparams)
+        print(chopparams)
+        scale = chopparams["scale"]
+        # set time slice width
+        shape[1] = scale
+
+        if "full" in self.config.chopname:
+            if chopparams.get("upper", False):
+                shape[0] = shape[0]//2
+                return shape
+            else:
+                shape[0] = shape[0]//4*4
+                return shape
+        else:
+            shape[0] = scale
+            return shape
+
     # Shuffle slices before each epoch.
     # Train with every slice for one epoch.
-    def default(self, shape):
+    def default(self):
         def generator(features, labels, batch_size):
+            shape = self._calculate_shape(features[0].shape)
             # remove track boundaries
             features = remove_track_boundaries(features)
             labels = remove_track_boundaries(labels)
@@ -52,8 +72,9 @@ class Batch(object):
     # Select a slice from a random track.
     # Repeat until batch is full.
     # Not every slice is used for training.
-    def tracks(self, shape):
+    def tracks(self):
         def generator(features, labels, batch_size):
+            shape = self._calculate_shape(features[0].shape)
             # Create empty arrays to contain batch of features and labels#
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
@@ -75,7 +96,7 @@ class Batch(object):
 
     # Create a random slice from a random track.
     # Repeat until batch is full.
-    def random(self, shape):
+    def random(self):
         chopper = Chopper()
 
         # only one slices at a time is needed
@@ -94,6 +115,7 @@ class Batch(object):
         chop = chopper.get()
 
         def generator(features, labels, batch_size):
+            shape = self._calculate_shape(features[0].shape)
             # Create empty arrays to contain batch of features and labels#
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
