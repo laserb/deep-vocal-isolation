@@ -15,6 +15,7 @@ class MatrixRunner(object):
         self.config = config
         self.train_data = None
         self.outfile = os.path.join(self.config.log_base, "result.md")
+        self.repeat = None
 
     def read_config(self, path):
         with open(path, 'r') as stream:
@@ -26,8 +27,14 @@ class MatrixRunner(object):
 
     def create_config(self, names, current={}):
         if not names:
-            self.config.create_logdir()
-            yield current
+            if self.repeat is not None:
+                for i in range(self.repeat):
+                    current["repeat"] = i
+                    self.config.create_logdir()
+                    yield current
+            else:
+                self.config.create_logdir()
+                yield current
         else:
             name = names[0]
             for value in self.data[name]:
@@ -36,15 +43,19 @@ class MatrixRunner(object):
                 yield from self.create_config(names[1:], current)
 
     def train(self, current_config):
+        repetition = current_config.pop("repeat", None)
         acapellabot = AcapellaBot(self.config)
         metrics = acapellabot.run(self.train_data)
         names = sorted(list(current_config.keys()))
         values = [current_config[name] for name in names]
+        if repetition is not None:
+            values = [repetition] + values
         self.resultwriter.writerow(values + metrics)
         self.csvfile.flush()
 
     def run(self):
         self.data = self.read_config(self.config_path)
+        self.repeat = self.data.pop("repeat", None)
         combinations = 1
         for values in self.data.values():
             combinations *= len(values)
@@ -57,6 +68,8 @@ class MatrixRunner(object):
 
             metric_names = ["loss"] + self.config.metrics.split(",")
             headers = sorted(list(self.data.keys())) + metric_names
+            if self.repeat is not None:
+                headers = ["i"] + headers
             self.resultwriter.writerow(headers)
             lines = ["-"*len(head) for head in headers]
             self.resultwriter.writerow(lines)
