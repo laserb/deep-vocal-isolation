@@ -24,9 +24,11 @@ class Batch(object):
         pass
 
     def _calculate_shape(self, shape):
-        shape = [*shape, 1]
+        # add a channel if there is none yet
+        shape = list(shape)
+        if len(shape) < 3:
+            shape.append(1)
         chopparams = eval(self.config.chopparams)
-        print(chopparams)
         scale = chopparams["scale"]
         # set time slice width
         shape[1] = scale
@@ -46,11 +48,12 @@ class Batch(object):
     # Train with every slice for one epoch.
     def default(self):
         def generator(features, labels, batch_size):
-            shape = self._calculate_shape(features[0].shape)
             # remove track boundaries
             features = remove_track_boundaries(features)
             labels = remove_track_boundaries(labels)
-            # Create empty arrays to contain batch of features and labels#
+            # calculate shape
+            shape = features[0].shape
+            # Create empty arrays to contain batch of features and labels
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
             n = len(features)
@@ -74,8 +77,8 @@ class Batch(object):
     # Not every slice is used for training.
     def tracks(self):
         def generator(features, labels, batch_size):
-            shape = self._calculate_shape(features[0].shape)
-            # Create empty arrays to contain batch of features and labels#
+            shape = features[0][0].shape
+            # Create empty arrays to contain batch of features and labels
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
             nTracks = len(features)
@@ -116,7 +119,7 @@ class Batch(object):
 
         def generator(features, labels, batch_size):
             shape = self._calculate_shape(features[0].shape)
-            # Create empty arrays to contain batch of features and labels#
+            # Create empty arrays to contain batch of features and labels
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
             nTracks = len(features)
