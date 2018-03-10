@@ -102,6 +102,18 @@ class Config(object):
                 eval(self.chopparams).get('upper', False),
                 self.loss, self.optimizer, self.normalizer]
 
+    def get_validation_tracks(self):
+        return ["SweetLights_YouLetMeDown",
+                "Schumann_Mignon",
+                "AimeeNorwich_Child",
+                "Creepoid_OldTree",
+                "PurlingHiss_Lolita",
+                "HeladoNegro_MitadDelMundo",
+                "NightPanther_Fire"]
+
+    def get_test_tracks(self):
+        return ["Auctioneer_OurFutureFaces"]
+
     def create_logdir(self):
         self.logs = os.path.join(self.log_base, self.get_logname())
         if not os.path.exists(self.logs):

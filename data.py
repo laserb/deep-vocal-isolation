@@ -30,19 +30,47 @@ class Data:
         self.fftWindowSize = self.config.fft
         self.trainingSplit = self.config.split
         self.isInstrumental = self.config.instrumental
-        self.mashup = []
-        self.acapella = []
-        self.instrumental = []
+        self.mashup = {}
+        self.acapella = {}
+        self.instrumental = {}
+        self.track_names = []
 
         self.load()
+        self.split_tracks()
+
+    def split_tracks(self):
+        self.validation_tracks = self.config.get_validation_tracks()
+        self.test_tracks = self.config.get_test_tracks()
+
+        self.validation_tracks = []
+        for track in self.config.get_validation_tracks():
+            for track_name in self.track_names:
+                if track in track_name:
+                    self.validation_tracks.append(track_name)
+
+        self.test_tracks = []
+        for track in self.config.get_test_tracks():
+            for track_name in self.track_names:
+                if track in track_name:
+                    self.test_tracks.append(track_name)
+
+        self.train_tracks = []
+        for track in self.track_names:
+            if track not in self.validation_tracks \
+                    and track not in self.test_tracks:
+                self.train_tracks.append(track)
+
+        if not self.validation_tracks:
+            length = int(len(self.track_names) * self.trainingSplit)
+            self.validation_tracks = self.track_names[length:]
+            self.train_tracks = self.track_names[:length]
 
     def train(self):
-        length = len(self.mashup) * self.trainingSplit
         if self.config.batch_generator.startswith("random"):
-            return self.prepare_random_data(end=length)
+            return self.prepare_random_data(self.train_tracks)
         else:
             chop = Chopper().get()
-            return self.prepare_data(chop, end=length)
+            return self.prepare_data(chop, self.train_tracks)
 
     def valid(self):
         chopper = Chopper()
@@ -51,22 +79,22 @@ class Data:
         params["upper"] = False
         chopper.params = str(params)
         chop = chopper.get()
-        start = len(self.mashup) * self.trainingSplit
-        xValid, yValid = self.prepare_data(chop, start=start)
+        xValid, yValid = self.prepare_data(chop, self.validation_tracks)
         xValid = remove_track_boundaries(xValid)
         yValid = remove_track_boundaries(yValid)
         return xValid, yValid
 
-    def prepare_data(self, chop, start=0, end=None, post_process=False):
+    def prepare_data(self, chop, tracks, post_process=False):
         normalize = Normalizer().get()
 
-        if end is None:
-            end = len(self.mashup)
-        x = self.mashup[int(start): int(end)]
-        if self.isInstrumental:
-            y = self.instrumental[int(start): int(end)]
-        else:
-            y = self.acapella[int(start): int(end)]
+        x = []
+        y = []
+        for track in tracks:
+            x.append(self.mashup[track])
+            if self.isInstrumental:
+                y.append(self.instrumental[track])
+            else:
+                y.append(self.acapella[track])
 
         x = [self.prepare_spectrogram(s) for s in x]
         y = [self.prepare_spectrogram(s) for s in y]
@@ -84,18 +112,18 @@ class Data:
             outputSlices.append(ySlices)
         return mashupSlices, outputSlices
 
-    def prepare_random_data(self, start=0, end=None, post_process=False):
-        if end is None:
-            end = len(self.mashup)
-        x = self.mashup[int(start): int(end)]
-        if self.isInstrumental:
-            y = self.instrumental[int(start): int(end)]
-        else:
-            y = self.acapella[int(start): int(end)]
+    def prepare_random_data(self, tracks, post_process=False):
+        x = []
+        y = []
+        for track in tracks:
+            x.append(self.mashup[track])
+            if self.isInstrumental:
+                y.append(self.instrumental[track])
+            else:
+                y.append(self.acapella[track])
 
         x = [self.prepare_spectrogram(s) for s in x]
         y = [self.prepare_spectrogram(s) for s in y]
-
         return x, y
 
     def prepare_spectrogram(self, spectrogram):
@@ -118,14 +146,16 @@ class Data:
             mashup = h5f["mashup"]
             acapella = h5f["acapella"]
             instrumental = h5f["instrumental"]
-            for track in sorted(mashup.keys()):
-                self.mashup.append(mashup[track])
-                self.acapella.append(acapella[track])
-                self.instrumental.append(instrumental[track])
+            self.track_names = [name.decode("utf8")
+                                for name in h5f["names"]["track"]]
+            self.mashup = dict(mashup)
+            self.acapella = dict(acapella)
+            self.instrumental = dict(instrumental)
         else:
             for dirPath, dirNames, fileNames in os.walk(self.inPath):
                 filteredFiles = filter(checkFilename, fileNames)
                 for fileName in filteredFiles:
+                    name = fileName.replace("_all.wav", "")
                     fileName = os.path.join(self.inPath, fileName)
                     acapella_file = fileName.replace("_all.wav",
                                                      "_acapella.wav")
@@ -134,6 +164,7 @@ class Data:
                     if not all([os.path.exists(acapella_file),
                                 os.path.exists(instrumental_file)]):
                         continue
+
                     audio, sampleRate = conversion.loadAudioFile(fileName)
                     spectrogram = conversion.audioFileToStft(
                         audio, self.fftWindowSize)
@@ -153,9 +184,10 @@ class Data:
                     console.info("Created spectrogram for", fileName,
                                  "with shape",
                                  spectrogram.shape)
-                    self.mashup.append(mashup)
-                    self.acapella.append(acapella)
-                    self.instrumental.append(instrumental)
+                    self.mashup[name] = mashup
+                    self.acapella[name] = acapella
+                    self.instrumental[name] = instrumental
+                    self.track_names.append(name)
             console.info("Created", len(self.mashup), "total spectras")
             # Save to file
             if saveDataAsH5:
@@ -167,11 +199,16 @@ class Data:
         mashup = h5f.create_group("mashup")
         acapella = h5f.create_group("acapella")
         instrumental = h5f.create_group("instrumental")
-        for i in range(len(self.mashup)):
-            track = 'track{:d}'.format(i)
-            mashup.create_dataset(name=track, data=self.mashup[i])
-            acapella.create_dataset(name=track, data=self.acapella[i])
-            instrumental.create_dataset(name=track, data=self.instrumental[i])
+        names = h5f.create_group("names")
+        track_names = [name.encode("utf8") for name in self.track_names]
+        names.create_dataset(name="track", data=track_names)
+        for track in self.track_names:
+            mashup.create_dataset(name=track.encode("utf8"),
+                                  data=self.mashup[track])
+            acapella.create_dataset(name=track.encode("utf8"),
+                                    data=self.acapella[track])
+            instrumental.create_dataset(name=track.encode("utf8"),
+                                        data=self.instrumental[track])
         h5f.close()
 
 
