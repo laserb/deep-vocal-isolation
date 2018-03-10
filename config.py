@@ -89,6 +89,12 @@ class Config(object):
         self.log_base = self.get("LOGS", "./logs")
         self.logs = os.path.join(self.log_base, "last")
 
+    def get_channels(self):
+        if self.learn_phase:
+            return 2
+        else:
+            return 1
+
     def get_character(self):
         return [self.model, self.instrumental, self.chopname,
                 eval(self.chopparams).get('upper', False),

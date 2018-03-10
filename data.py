@@ -100,11 +100,9 @@ class Data:
 
     def prepare_spectrogram(self, spectrogram):
         if self.config.learn_phase:
-            return
+            return conversion.stftToRealAndImag(spectrogram)
         else:
-            spectrogram = conversion.stftToAmplitude(spectrogram)
-            return np.array(spectrogram)[:, :, np.newaxis]
-
+            return conversion.stftToAmplitude(spectrogram)
 
     def get_data_path(self):
         return os.path.join(self.inPath, "data_%s.h5" % self.fftWindowSize)

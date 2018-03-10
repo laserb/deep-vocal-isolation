@@ -149,8 +149,9 @@ class AcapellaBot:
     def isolateVocals(self, path, fftWindowSize, phaseIterations=10):
         console.log("Attempting to isolate vocals from", path)
         audio, sampleRate = conversion.loadAudioFile(path)
-        spectrogram, phase = conversion.audioFileToSpectrogram(
-            audio, fftWindowSize=fftWindowSize)
+        spectrogram = conversion.audioFileToSpectrogram(
+            audio, fftWindowSize=fftWindowSize,
+            learn_phase=self.config.learn_phase)
         console.log("Retrieved spectrogram; processing...")
 
         chopper = Chopper()

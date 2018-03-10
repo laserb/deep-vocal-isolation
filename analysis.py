@@ -308,7 +308,9 @@ class Analysis:
 
     def _create_spectrogram_from_file(self, filePath):
         audio, sampleRate = conversion.loadAudioFile(filePath)
-        spectrogram, phase = conversion.audioFileToSpectrogram(audio, 1536)
+        spectrogram = \
+            conversion.audioFileToSpectrogram(audio, 1536,
+                                              self.config.learn_phase)
 
         return spectrogram
 

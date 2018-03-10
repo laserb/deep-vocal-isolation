@@ -27,25 +27,34 @@ def expandToGrid(spectrogram, gridSize):
     newSpectrogram[:spectrogram.shape[0], :spectrogram.shape[1]] = spectrogram
     return newSpectrogram
 
-# Return a 2d numpy array of the spectrogram
-
 
 def stftToAmplitude(stft):
-    amplitude = np.log1p(np.abs(stft))
-    return amplitude
+    spectrogram = np.log1p(np.abs(stft))
+    return np.array(spectrogram)[:, :, np.newaxis]
+
+
+def stftToRealAndImag(stft):
+    real = np.real(stft)
+    imag = np.imag(stft)
+    spectrogram = np.zeros((stft.shape[0], stft.shape[1], 2))
+    spectrogram[:, :, 0] = real
+    spectrogram[:, :, 1] = imag
+    return spectrogram
+
 
 def audioFileToStft(audioFile, fftWindowSize):
     return librosa.stft(audioFile, fftWindowSize)
 
-def audioFileToSpectrogram(audioFile, fftWindowSize):
+
+def audioFileToSpectrogram(audioFile, fftWindowSize, learn_phase=False):
     spectrogram = audioFileToStft(audioFile, fftWindowSize)
-    phase = np.imag(spectrogram)
-    amplitude = np.log1p(np.abs(spectrogram))
-    return amplitude, phase
+    if learn_phase:
+        return stftToRealAndImag(spectrogram)
+    else:
+        return stftToAmplitude(spectrogram)
+
 
 # This is the nutty one
-
-
 def spectrogramToAudioFile(spectrogram, fftWindowSize,
                            phaseIterations=10, phase=None):
     if phase is not None:
@@ -116,7 +125,7 @@ def handleAudio(filePath, args):
     console.info("Attempting to read from " + INPUT_FILE)
     audio, sampleRate = loadAudioFile(INPUT_FILE)
     console.info("Max of audio file is " + str(np.max(audio)))
-    spectrogram, phase = audioFileToSpectrogram(audio, fftWindowSize=args.fft)
+    spectrogram = audioFileToSpectrogram(audio, fftWindowSize=args.fft)
     SPECTROGRAM_FILENAME = INPUT_FILENAME + \
         fileSuffix("Input Spectrogram", fft=args.fft,
                    iter=args.iter, sampleRate=sampleRate) + ".png"
@@ -127,17 +136,17 @@ def handleAudio(filePath, args):
     console.wait("Saved Spectrogram; press Enter to continue...")
     print()
 
-    handleImage(SPECTROGRAM_FILENAME, args, phase)
+    handleImage(SPECTROGRAM_FILENAME, args)
 
 
-def handleImage(fileName, args, phase=None):
+def handleImage(fileName, args):
     console.h1("Reconstructing Audio from Spectrogram")
 
     spectrogram, sampleRate = loadSpectrogram(fileName)
     audio = spectrogramToAudioFile(
         spectrogram, fftWindowSize=args.fft, phaseIterations=args.iter)
 
-    sanityCheck, phase = audioFileToSpectrogram(audio, fftWindowSize=args.fft)
+    sanityCheck = audioFileToSpectrogram(audio, fftWindowSize=args.fft)
     outname = fileName \
         + fileSuffix("Output Spectrogram",
                      fft=args.fft,
