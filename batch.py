@@ -135,10 +135,6 @@ class Batch(object):
                     feature, label = \
                         self.normalize(xSlices[0], ySlices[0])
 
-                    # Add a "channels" channel to please the network
-                    feature = np.array(feature)[:, :, np.newaxis]
-                    label = np.array(label)[:, :, np.newaxis]
-
                     batch_features[i] = feature
                     batch_labels[i] = label
                 yield batch_features, batch_labels
