@@ -169,6 +169,7 @@ class AcapellaBot:
         for slice in slices:
             # normalize
             slice, norm = normalize(slice)
+
             expandedSpectrogram = conversion.expandToGrid(
                 slice, self.peakDownscaleFactor)
             expandedSpectrogramWithBatchAndChannels = \
@@ -182,7 +183,9 @@ class AcapellaBot:
             localSpectrogram = predictedSpectrogram[:slice.shape[0],
                                                     :slice.shape[1]]
             # de-normalize spectrogram
+
             localSpectrogram = denormalize(localSpectrogram, norm)
+
             newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
                                             axis=1)
 
