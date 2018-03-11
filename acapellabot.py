@@ -147,15 +147,7 @@ class AcapellaBot:
             path = os.path.join(self.config.logs, path)
         self.model.load_weights(path)
 
-    def isolateVocals(self, path, fftWindowSize, phaseIterations=10,
-                      learnPhase=False, channels=1):
-        console.log("Attempting to isolate vocals from", path)
-        audio, sampleRate = conversion.loadAudioFile(path)
-        spectrogram = conversion.audioFileToSpectrogram(
-            audio, fftWindowSize=fftWindowSize,
-            learn_phase=self.config.learn_phase)
-        console.log("Retrieved spectrogram; processing...")
-
+    def process_spectrogram(self, spectrogram, channels=1):
         chopper = Chopper()
         chopper.name = "infere"
         chopper.params = "{'scale': %d}" % self.config.inference_slice
@@ -163,15 +155,8 @@ class AcapellaBot:
 
         slices = chop(spectrogram)
 
-        normalizer = Normalizer()
-        normalize = normalizer.get(both=False)
-        denormalize = normalizer.get_reverse()
-
         newSpectrogram = np.zeros((spectrogram.shape[0], 0, channels))
         for slice in slices:
-            # normalize
-            slice, norm = normalize(slice)
-
             expandedSpectrogram = conversion.expandToGrid(
                 slice, self.peakDownscaleFactor, channels)
             expandedSpectrogramWithBatchAndChannels = \
@@ -184,14 +169,36 @@ class AcapellaBot:
                 predictedSpectrogramWithBatchAndChannels[0, :, :, :]
             localSpectrogram = predictedSpectrogram[:slice.shape[0],
                                                     :slice.shape[1], :]
-            # de-normalize spectrogram
-
-            localSpectrogram = denormalize(localSpectrogram, norm)
 
             newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
                                             axis=1)
+        console.log("Processed spectrogram")
+        return spectrogram, newSpectrogram
 
-        console.log("Processed spectrogram; reconverting to audio")
+    def isolateVocals(self, path, fftWindowSize, phaseIterations=10,
+                      learnPhase=False, channels=1):
+        console.log("Attempting to isolate vocals from", path)
+        audio, sampleRate = conversion.loadAudioFile(path)
+        spectrogram = conversion.audioFileToSpectrogram(
+            audio, fftWindowSize=fftWindowSize,
+            learn_phase=self.config.learn_phase)
+        console.log("Retrieved spectrogram; processing...")
+
+        normalizer = Normalizer()
+        normalize = normalizer.get(both=False)
+        denormalize = normalizer.get_reverse()
+
+        # normalize
+        spectogram, norm = normalize(spectrogram)
+
+        info = self.process_spectrogram(spectrogram, channels)
+        spectrogram, newSpectrogram = info
+
+        # de-normalize
+        newSpectrogram = denormalize(newSpectrogram, norm)
+        spectrogram = denormalize(spectrogram, norm)
+
+        console.log("reconverting to audio")
 
         # save original spectrogram as image
         pathParts = os.path.split(path)
