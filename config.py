@@ -30,8 +30,10 @@ class Config(object):
                                        "{'min_delta': 0.001, 'patience': 3}")
         # Phase iterations for reconstruction
         self.phase = self.get_int("PHASE", 10)
+        self.phase_iterations = self.get_int("PHASE_ITERATIONS", 10)
         # Learn phase
         self.learn_phase = self.get_bool("LEARN_PHASE", False)
+
         # quit after training for specified epochs
         self.quit = self.get_bool("QUIT", True)
         # Load previous weights file before starting

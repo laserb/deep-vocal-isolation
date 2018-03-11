@@ -19,12 +19,12 @@ def saveAudioFile(audioFile, filePath, sampleRate):
     console.info("Wrote audio file to", filePath)
 
 
-def expandToGrid(spectrogram, gridSize):
+def expandToGrid(spectrogram, gridSize, channels):
     # crop along both axes
     newY = ceil(spectrogram.shape[1] / gridSize) * gridSize
     newX = ceil(spectrogram.shape[0] / gridSize) * gridSize
-    newSpectrogram = np.zeros((newX, newY))
-    newSpectrogram[:spectrogram.shape[0], :spectrogram.shape[1]] = spectrogram
+    newSpectrogram = np.zeros((newX, newY, channels))
+    newSpectrogram[:spectrogram.shape[0], :spectrogram.shape[1], :] = spectrogram
     return newSpectrogram
 
 
@@ -42,6 +42,12 @@ def stftToRealAndImag(stft):
     return spectrogram
 
 
+def realAndImagToStft(spectrogram):
+    real = spectrogram[:, :, 0]
+    imag = spectrogram[:, :, 1]
+    return real + imag * 1j
+
+
 def audioFileToStft(audioFile, fftWindowSize):
     return librosa.stft(audioFile, fftWindowSize)
 
@@ -53,23 +59,21 @@ def audioFileToSpectrogram(audioFile, fftWindowSize, learn_phase=False):
     else:
         return stftToAmplitude(spectrogram)
 
-
 # This is the nutty one
+
+
+
 def spectrogramToAudioFile(spectrogram, fftWindowSize,
-                           phaseIterations=10, phase=None):
-    if phase is not None:
-        # reconstructing the new complex matrix
-        squaredAmplitudeAndSquaredPhase = np.power(spectrogram, 2)
-        squaredPhase = np.power(phase, 2)
-        unexpd = np.sqrt(
-            np.max(squaredAmplitudeAndSquaredPhase - squaredPhase, 0))
-        amplitude = np.expm1(unexpd)
-        stftMatrix = amplitude + phase * 1j
+                           phaseIterations=10, learnPhase=False):
+    if learnPhase:
+        stftMatrix = realAndImagToStft(spectrogram)
         audio = librosa.istft(stftMatrix)
     else:
         # phase reconstruction with successive approximation
         # credit to https://dsp.stackexchange.com/questions/3406/reconstruction-of-audio-signal-from-its-absolute-spectrogram/3410#3410  # noqa: E501
         # for the algorithm used
+        spectrogram = spectrogram[:, :, 0]
+
         amplitude = np.exp(spectrogram) - 1
         for i in range(phaseIterations):
             if i == 0:
@@ -96,7 +100,13 @@ def loadSpectrogram(filePath):
     return image / np.max(image), sampleRate
 
 
-def saveSpectrogram(spectrogram, filePath):
+def saveSpectrogram(spectrogram, filePath, learnPhase=False):
+    if learnPhase:
+        spectrogram = stftToAmplitude(
+            realAndImagToStft(spectrogram))
+
+    spectrogram = spectrogram[:, :, 0]
+
     cm_hot = get_cmap('magma')
     spectrum = spectrogram
     console.info("Range of spectrum is " +
