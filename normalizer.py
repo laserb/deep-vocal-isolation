@@ -49,31 +49,47 @@ class Normalizer(object):
     def reverse_dummy(self, matrix, norm):
         return matrix
 
-    def percentile(self, matrix, percentile, norm=None):
+    def percentile(self, matrix, percentile, median=True, norm=None):
         if norm is not None:
             if self.config.learn_phase:
-                matrix[:, :, 0] /= norm[0]
-                matrix[:, :, 1] /= norm[1]
+                ((shift_real, scale_real),
+                 (shift_imag, scale_imag)) = norm
+                matrix[:, :, 0] -= shift_real
+                matrix[:, :, 0] /= scale_real
+
+                matrix[:, :, 1] -= shift_imag
+                matrix[:, :, 1] /= scale_imag
             else:
                 matrix /= norm
             return matrix, norm
         else:
             if self.config.learn_phase:
-                matrix[:, :, 0] -= np.mean(matrix[:, :, 0])
-                matrix[:, :, 1] -= np.mean(matrix[:, :, 1])
+                if median:
+                    # shift median to zero
+                    shift_real = np.median(matrix[:, :, 0])
+                    shift_imag = np.median(matrix[:, :, 1])
+                else:
+                    # shift mean to zero
+                    shift_real = np.mean(matrix[:, :, 0])
+                    shift_imag = np.mean(matrix[:, :, 1])
+                matrix[:, :, 0] -= shift_real
+                matrix[:, :, 1] -= shift_imag
 
-                norm = (np.percentile(np.abs(matrix[:, :, 0]), percentile),
-                        np.percentile(np.abs(matrix[:, :, 1]), percentile))
+                scale_real = np.percentile(np.abs(matrix[:, :, 0]), percentile)
+                scale_imag = np.percentile(np.abs(matrix[:, :, 1]), percentile)
 
                 # do not scale to range 0 - 1,
                 # if most of the data is close to 0
-                if norm[0] < 10e-5:
-                    norm[0] = 1
-                if norm[1] < 10e-5:
-                    norm[1] = 1
+                if scale_real < 10e-5:
+                    scale_real = 1
+                if scale_imag < 10e-5:
+                    scale_imag = 1
 
-                matrix[:, :, 0] /= norm[0]
-                matrix[:, :, 1] /= norm[1]
+                norm = ((shift_real, scale_real),
+                        (shift_imag, scale_imag))
+
+                matrix[:, :, 0] /= scale_real
+                matrix[:, :, 1] /= scale_imag
 
                 return matrix, norm
             else:
@@ -88,8 +104,12 @@ class Normalizer(object):
 
     def reverse_percentile(self, matrix, norm):
         if self.config.learn_phase:
-            matrix[:, :, 0] *= norm[0]
-            matrix[:, :, 1] *= norm[1]
+            ((shift_real, scale_real),
+             (shift_imag, scale_imag)) = norm
+            matrix[:, :, 0] *= scale_real
+            matrix[:, :, 0] += shift_real
+            matrix[:, :, 1] *= scale_imag
+            matrix[:, :, 1] += shift_imag
         else:
             matrix *= norm
         return matrix
