@@ -51,16 +51,45 @@ class Normalizer(object):
 
     def percentile(self, matrix, percentile, norm=None):
         if norm is not None:
-            matrix /= norm
+            if self.config.learn_phase:
+                matrix[:, :, 0] /= norm[0]
+                matrix[:, :, 1] /= norm[1]
+            else:
+                matrix /= norm
             return matrix, norm
         else:
-            norm = np.percentile(matrix, percentile)
-            # do not scale to range 0 - 1, if most of the data is close to 0
-            if norm < 10e-5:
-                norm = 1
-            matrix /= norm
+            if self.config.learn_phase:
+                matrix[:, :, 0] -= np.mean(matrix[:, :, 0])
+                matrix[:, :, 1] -= np.mean(matrix[:, :, 1])
+
+                norm = (np.percentile(np.abs(matrix[:, :, 0]), percentile),
+                        np.percentile(np.abs(matrix[:, :, 1]), percentile))
+
+                # do not scale to range 0 - 1,
+                # if most of the data is close to 0
+                if norm[0] < 10e-5:
+                    norm[0] = 1
+                if norm[1] < 10e-5:
+                    norm[1] = 1
+
+                matrix[:, :, 0] /= norm[0]
+                matrix[:, :, 1] /= norm[1]
+
+                return matrix, norm
+            else:
+                norm = np.percentile(matrix, percentile)
+                # do not scale to range 0 - 1,
+                # if most of the data is close to 0
+                if norm < 10e-5:
+                    norm = 1
+                matrix /= norm
+
         return matrix, norm
 
     def reverse_percentile(self, matrix, norm):
-        matrix *= norm
+        if self.config.learn_phase:
+            matrix[:, :, 0] *= norm[0]
+            matrix[:, :, 1] *= norm[1]
+        else:
+            matrix *= norm
         return matrix

@@ -59,7 +59,7 @@ class Chopper(object):
         for time in range(0, matrix.shape[1] // scale):
             for freq in range(0, limit // scale):
                 s = matrix[freq * scale: (freq + 1) * scale,
-                           time * scale: (time + 1) * scale]
+                           time * scale: (time + 1) * scale, :]
                 slices.append(s)
         return slices
 
@@ -68,9 +68,9 @@ class Chopper(object):
         for time in range(0, matrix.shape[1] // scale):
             if upper:
                 s = matrix[0:matrix.shape[0]//2,
-                           time * scale: (time + 1) * scale]
+                           time * scale: (time + 1) * scale, :]
             else:
-                s = matrix[1:, time * scale: (time + 1) * scale]
+                s = matrix[1:, time * scale: (time + 1) * scale, :]
             slices.append(s)
         return slices
 
@@ -87,7 +87,7 @@ class Chopper(object):
         for time in range(0, (matrix.shape[1] - scale) // time_step):
             for freq in range(0, (limit - scale) // freq_step):
                 s = matrix[freq * freq_step: freq * freq_step + scale,
-                           time * time_step: time * time_step + scale]
+                           time * time_step: time * time_step + scale, :]
                 slices.append(s)
         return slices
 
@@ -101,9 +101,9 @@ class Chopper(object):
         for time in range(0, (matrix.shape[1] - scale) // time_step):
             if upper:
                 s = matrix[0:matrix.shape[0] // 2,
-                           time * time_step: time * time_step + scale]
+                           time * time_step: time * time_step + scale, :]
             else:
-                s = matrix[1:, time * time_step: time * time_step + scale]
+                s = matrix[1:, time * time_step: time * time_step + scale, :]
             slices.append(s)
         return slices
 
@@ -124,10 +124,10 @@ class Chopper(object):
         for time in range(0, acapella.shape[1] // scale):
             for freq in range(0, limit // scale):
                 sa = acapella[freq * scale: (freq + 1) * scale,
-                              time * scale: (time + 1) * scale]
+                              time * scale: (time + 1) * scale, :]
 
                 sm = mashup[freq * scale: (freq + 1) * scale,
-                            time * scale: (time + 1) * scale]
+                            time * scale: (time + 1) * scale, :]
 
                 if mean_deviation < filter_function(sa):
                     acapellaSlices.append(sa)
@@ -150,13 +150,13 @@ class Chopper(object):
         for time in range(0, acapella.shape[1] // scale):
             if upper:
                 sa = acapella[0:acapella.shape[0] // 2,
-                              time * scale: (time + 1) * scale]
+                              time * scale: (time + 1) * scale, :]
 
                 sm = mashup[0:mashup.shape[0] // 2,
-                            time * scale: (time + 1) * scale]
+                            time * scale: (time + 1) * scale, :]
             else:
-                sa = acapella[1:, time * scale: (time + 1) * scale]
-                sm = mashup[1:, time * scale: (time + 1) * scale]
+                sa = acapella[1:, time * scale: (time + 1) * scale, :]
+                sm = mashup[1:, time * scale: (time + 1) * scale, :]
 
             if mean_deviation < filter_function(sa):
                 acapellaSlices.append(sa)
@@ -177,10 +177,10 @@ class Chopper(object):
             random_freq = random.randrange(limit - scale)
 
             sa = acapella[random_freq: random_freq + scale,
-                          random_time: random_time + scale]
+                          random_time: random_time + scale, :]
 
             sm = mashup[random_freq: random_freq + scale,
-                        random_time: random_time + scale]
+                        random_time: random_time + scale, :]
 
             acapellaSlices.append(sa)
             mashupSlices.append(sm)
@@ -198,13 +198,13 @@ class Chopper(object):
 
             if upper:
                 sa = acapella[0:acapella.shape[0] // 2,
-                              random_time: random_time + scale]
+                              random_time: random_time + scale, :]
 
                 sm = mashup[0:mashup.shape[0] // 2,
-                            random_time: random_time + scale]
+                            random_time: random_time + scale, :]
             else:
-                sa = acapella[1:, random_time: random_time + scale]
-                sm = mashup[1:, random_time: random_time + scale]
+                sa = acapella[1:, random_time: random_time + scale, :]
+                sm = mashup[1:, random_time: random_time + scale, :]
 
             acapellaSlices.append(sa)
             mashupSlices.append(sm)
@@ -214,7 +214,7 @@ class Chopper(object):
     def infere(self, matrix, scale, **kwargs):
         slices = []
         for time in range(0, matrix.shape[1] // scale + 1):
-            s = matrix[0:, time * scale: (time + 1) * scale]
+            s = matrix[0:, time * scale: (time + 1) * scale, :]
             slices.append(s)
         return slices
 

@@ -67,15 +67,19 @@ class Data:
             y = self.instrumental[int(start): int(end)]
         else:
             y = self.acapella[int(start): int(end)]
+
+        x = [self.prepare_spectrogram(s) for s in x]
+        y = [self.prepare_spectrogram(s) for s in y]
+
         mashupSlices = []
         outputSlices = []
         for mashup, output in zip(x, y):
             xSlices, ySlices = chop(mashup, output)
             xSlices, ySlices = \
                 normalize(xSlices, ySlices)
-            # Add a "channels" channel to please the network
-            xSlices = np.array(xSlices)[:, :, :, np.newaxis]
-            ySlices = np.array(ySlices)[:, :, :, np.newaxis]
+
+            xSlices = np.array(xSlices)[:]
+            ySlices = np.array(ySlices)[:]
             mashupSlices.append(xSlices)
             outputSlices.append(ySlices)
         return mashupSlices, outputSlices
@@ -88,7 +92,17 @@ class Data:
             y = self.instrumental[int(start): int(end)]
         else:
             y = self.acapella[int(start): int(end)]
+
+        x = [self.prepare_spectrogram(s) for s in x]
+        y = [self.prepare_spectrogram(s) for s in y]
+
         return x, y
+
+    def prepare_spectrogram(self, spectrogram):
+        if self.config.learn_phase:
+            return conversion.stftToRealAndImag(spectrogram)
+        else:
+            return conversion.stftToAmplitude(spectrogram)
 
     def get_data_path(self):
         return os.path.join(self.inPath, "data_%s.h5" % self.fftWindowSize)
@@ -121,18 +135,18 @@ class Data:
                                 os.path.exists(instrumental_file)]):
                         continue
                     audio, sampleRate = conversion.loadAudioFile(fileName)
-                    spectrogram, phase = conversion.audioFileToSpectrogram(
+                    spectrogram = conversion.audioFileToStft(
                         audio, self.fftWindowSize)
                     mashup = spectrogram
 
                     audio, sampleRate = conversion.loadAudioFile(acapella_file)
-                    spectrogram, phase = conversion.audioFileToSpectrogram(
+                    spectrogram = conversion.audioFileToStft(
                         audio, self.fftWindowSize)
                     acapella = spectrogram
 
                     audio, sampleRate = \
                         conversion.loadAudioFile(instrumental_file)
-                    spectrogram, phase = conversion.audioFileToSpectrogram(
+                    spectrogram = conversion.audioFileToStft(
                         audio, self.fftWindowSize)
                     instrumental = spectrogram
 

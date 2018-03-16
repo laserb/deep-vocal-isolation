@@ -146,11 +146,13 @@ class AcapellaBot:
             path = os.path.join(self.config.logs, path)
         self.model.load_weights(path)
 
-    def isolateVocals(self, path, fftWindowSize, phaseIterations=10):
+    def isolateVocals(self, path, fftWindowSize, phaseIterations=10,
+                      learnPhase=False, channels=1):
         console.log("Attempting to isolate vocals from", path)
         audio, sampleRate = conversion.loadAudioFile(path)
-        spectrogram, phase = conversion.audioFileToSpectrogram(
-            audio, fftWindowSize=fftWindowSize)
+        spectrogram = conversion.audioFileToSpectrogram(
+            audio, fftWindowSize=fftWindowSize,
+            learn_phase=self.config.learn_phase)
         console.log("Retrieved spectrogram; processing...")
 
         chopper = Chopper()
@@ -164,24 +166,27 @@ class AcapellaBot:
         normalize = normalizer.get(both=False)
         denormalize = normalizer.get_reverse()
 
-        newSpectrogram = np.zeros((spectrogram.shape[0], 0))
+        newSpectrogram = np.zeros((spectrogram.shape[0], 0, channels))
         for slice in slices:
             # normalize
             slice, norm = normalize(slice)
+
             expandedSpectrogram = conversion.expandToGrid(
-                slice, self.peakDownscaleFactor)
+                slice, self.peakDownscaleFactor, channels)
             expandedSpectrogramWithBatchAndChannels = \
-                expandedSpectrogram[np.newaxis, :, :, np.newaxis]
+                expandedSpectrogram[np.newaxis, :, :]
 
             predictedSpectrogramWithBatchAndChannels = self.model.predict(
                 expandedSpectrogramWithBatchAndChannels)
             # o /// o
             predictedSpectrogram = \
-                predictedSpectrogramWithBatchAndChannels[0, :, :, 0]
+                predictedSpectrogramWithBatchAndChannels[0, :, :, :]
             localSpectrogram = predictedSpectrogram[:slice.shape[0],
-                                                    :slice.shape[1]]
+                                                    :slice.shape[1], :]
             # de-normalize spectrogram
+
             localSpectrogram = denormalize(localSpectrogram, norm)
+
             newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
                                             axis=1)
 
@@ -190,8 +195,11 @@ class AcapellaBot:
         # save original spectrogram as image
         pathParts = os.path.split(path)
         fileNameParts = os.path.splitext(pathParts[1])
+
         conversion.saveSpectrogram(spectrogram, os.path.join(
             pathParts[0], fileNameParts[0]) + ".png")
+
+        newSpectrogram = np.clip(newSpectrogram, 0, 43)
 
         # save network output
         self.saveAudio(newSpectrogram,
@@ -199,7 +207,8 @@ class AcapellaBot:
                        phaseIterations,
                        sampleRate,
                        path,
-                       vocal=not self.config.instrumental)
+                       vocal=not self.config.instrumental,
+                       learnPhase=learnPhase)
 
         # save difference
         self.saveAudio(spectrogram - newSpectrogram,
@@ -207,18 +216,20 @@ class AcapellaBot:
                        phaseIterations,
                        sampleRate,
                        path,
-                       vocal=self.config.instrumental)
+                       vocal=self.config.instrumental,
+                       learnPhase=learnPhase)
 
         console.log("Vocal isolation complete")
 
     def saveAudio(self, spectrogram, fftWindowSize,
                   phaseIterations, sampleRate,
-                  path, vocal=True):
+                  path, vocal=True, learnPhase=False):
         part = "_vocal" if vocal else "_instrumental"
         newAudio = conversion.spectrogramToAudioFile(
                 spectrogram,
                 fftWindowSize=fftWindowSize,
-                phaseIterations=phaseIterations)
+                phaseIterations=phaseIterations,
+                learnPhase=learnPhase)
         pathParts = os.path.split(path)
         fileNameParts = os.path.splitext(pathParts[1])
         outputFileNameBase = os.path.join(
@@ -259,7 +270,10 @@ if __name__ == "__main__":
         console.h1("Loading weights")
         acapellabot.loadWeights(config.weights)
         for f in files:
-            acapellabot.isolateVocals(f, config.fft, config.phase)
+            acapellabot.isolateVocals(f, config.fft,
+                                      config.phase_iterations,
+                                      config.learn_phase,
+                                      config.get_channels())
     else:
         console.error(
             "Please provide data to train on (--data) or files to infer on")

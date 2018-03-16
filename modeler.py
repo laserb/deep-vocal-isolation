@@ -10,6 +10,7 @@ class Modeler(object):
         self.config = config
         self.model = self.config.model
         self.params = self.config.model_params
+        self.channels = self.config.get_channels()
 
     def get(self):
         if self.params:
@@ -19,7 +20,7 @@ class Modeler(object):
         return getattr(self, self.model)(**params)
 
     def acapellabot(self):
-        mashup = Input(shape=(None, None, 1), name='input')
+        mashup = Input(shape=(None, None, self.channels), name='input')
         convA = Conv2D(64, 3, activation='relu', padding='same')(mashup)
         conv = Conv2D(64, 4, strides=2, activation='relu',
                       padding='same', use_bias=False)(convA)
@@ -47,12 +48,13 @@ class Modeler(object):
         conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(32, 3, activation='relu', padding='same')(conv)
-        conv = Conv2D(1, 3, activation='relu', padding='same')(conv)
+        conv = Conv2D(self.channels,
+                      3, activation='relu', padding='same')(conv)
         acapella = conv
         return Model(inputs=mashup, outputs=acapella)
 
     def leaky_dropout(self, alpha1, alpha2, rate):
-        mashup = Input(shape=(None, None, 1), name='input')
+        mashup = Input(shape=(None, None, self.channels), name='input')
         dropout = Dropout(rate)(mashup)
 
         convA = Conv2D(64, 3, padding='same')(dropout)
@@ -113,7 +115,7 @@ class Modeler(object):
         conv = LeakyReLU(alpha=alpha2)(conv)
         conv = Dropout(rate)(conv)
 
-        conv = Conv2D(1, 3, padding='same')(conv)
+        conv = Conv2D(self.channels, 3, padding='same')(conv)
         conv = LeakyReLU(alpha=alpha2)(conv)
 
         acapella = conv
