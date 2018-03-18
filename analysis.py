@@ -45,7 +45,8 @@ class Analysis:
         analyse = self.get()
         analyse(*args)
 
-    def slices(self, file):
+    def slices(self, file, learnPhase="False"):
+        self.config.learn_phase = eval(learnPhase)
         spectrogram = self._create_spectrogram_from_file(file)
 
         currMin = [float("inf"), float("inf")]
@@ -159,15 +160,26 @@ class Analysis:
         self._write("Count max above mean deviation is %d of %d"
                     % (countDevMax, slicesLength))
 
-    def spectrograms(self, directory):
+    def spectrograms(self, directory, learnPhase="False"):
+        self.config.learn_phase = eval(learnPhase)
 
         data = self._read_spectrograms_from_dir(directory)
 
         counts = [[0, 0, 0], [0, 0, 0]]
         desc = ["upper", "center", "lower"]
 
-        for (spectrogram, name) in data:
+        self._write("## Spectrogram analysis")
 
+        if self.config.learn_phase:
+            self._write("### Analysis for real and imaginary data")
+            self._write("name | real/imag | best window | mean")
+            self._write("-----|-----|-----|-----")
+        else:
+            self._write("### Analysis for amplitude data")
+            self._write("name | best window | mean")
+            self._write("-----|-----|-----")
+
+        for (spectrogram, name) in data:
             if self.config.learn_phase:
                 meansReal = self._calculate_spectrogram_windows(
                     spectrogram[:, :, 0])
@@ -180,24 +192,35 @@ class Analysis:
                 counts[0][bestReal] += 1
                 counts[1][bestImag] += 1
 
-                self._write("{:50s} best real mean {:8f} in {:s} window"
-                            .format(name, np.max(meansReal), desc[bestReal]))
-                self._write("{:50s} best imag mean {:8f} in {:s} window"
-                            .format(name, np.max(meansImag), desc[bestImag]))
+                self._write("%s | real | %s | %f"
+                            % (name, desc[bestReal], np.max(meansReal)))
+                self._write("%s | imag | %s | %f"
+                            % (name,  desc[bestImag], np.max(meansImag)))
             else:
                 means = self._calculate_spectrogram_windows(spectrogram)
 
                 best = np.argmax(means)
                 counts[0][best] += 1
 
-                self._write("{:50s} best mean {:8f} in {:s} window"
-                            .format(name, np.max(means), desc[best]))
+                self._write("%s | %s | %f" % (name, desc[best], np.max(means)))
 
-        self._write("\nStatistics\n")
-        self._write_spectrogram_statistics(counts[0], desc, len(data))
+        self._write("#### Statistics")
+
         if self.config.learn_phase:
-            self._write("")
-            self._write_spectrogram_statistics(counts[1], desc, len(data))
+            self._write("total | real/imag | upper | center | lower")
+            self._write("-----|-----|-----|-----|-----")
+            self._write("%d | real | %d | %d | %d"
+                        % (len(data), counts[0][0],
+                           counts[0][1], counts[0][2]))
+            self._write("%d | imag | %d | %d | %d"
+                        % (len(data), counts[1][0],
+                           counts[1][1], counts[1][2]))
+        else:
+            self._write("total | upper | center | lower")
+            self._write("-----|-----|-----|-----")
+            self._write("%d | %d | %d | %d"
+                        % (len(data), counts[0][0],
+                           counts[0][1], counts[0][2]))
 
         self._save_analysis()
 
@@ -213,20 +236,13 @@ class Analysis:
 
         return means
 
-    def _write_spectrogram_statistics(self, counts, desc, dataLength):
-        self._write("%d spectrograms analysed" % dataLength)
-        self._write("%d have the highest mean in %s window"
-                    % (counts[0], desc[0]))
-        self._write("%d have the highest mean in %s window"
-                    % (counts[1], desc[1]))
-        self._write("%d have the highest mean in %s window"
-                    % (counts[2], desc[2]))
-
     def weights(self, directory):
         weights = self._read_weights_from_dir(directory)
 
+        self._write("## Weights analysis")
+
         for i in range(0, len(weights) - 1):
-            self._write("Comparing weights of epoch %d with epoch %d"
+            self._write("### Comparing weights of epoch %d with epoch %d"
                         % (i + 1, i + 2))
 
             betaDev, gammaDev, movingMeanDev, movingVarDev \
@@ -234,13 +250,19 @@ class Analysis:
             biasDev, kernelDev \
                 = self._compare_conv2d(weights[i], weights[i + 1])
 
-            self._write("Epochs %d to %d: Batch normalization mean deviation: "
-                        "beta=%f, gamma=%f, moving mean=%f moving variance=%f"
-                        % (i + 1, i + 2, betaDev, gammaDev,
+            self._write("#### Statistics")
+            self._write("##### Batch normalization")
+            self._write("beta | gamma | moving mean | moving variance")
+            self._write("-----|-----|-----|-----|-----")
+            self._write("| %f | %f | %f | %f"
+                        % (betaDev, gammaDev,
                            movingMeanDev, movingVarDev))
-            self._write("Epochs %d to %d: Conv2d mean deviation: "
-                        "bias=%f, kernel=%f"
-                        % (i + 1, i + 2, biasDev, kernelDev))
+            self._write("##### Conv2D")
+            self._write("bias | kernel")
+            self._write("-----|-----|-----")
+
+            self._write("%f | %f"
+                        % (biasDev, kernelDev))
 
         self._save_analysis()
 
@@ -290,6 +312,10 @@ class Analysis:
         meanDevGamma = []
         meanDevMovMean = []
         meanDevMovVar = []
+
+        self._write("layer | beta | gamma | moving mean | moving variance")
+        self._write("-----|-----|-----|-----|-----")
+
         for i in range(1, BATCH_LAYERS + 1):
             (beta1, gamma1, movingMean1, movingVariance1) \
                 = self._get_batch_normalization_data(1, weight1)
@@ -308,10 +334,9 @@ class Analysis:
             meanDevGamma.append(gammaDiff)
             meanDevMovMean.append(movingMeanDiff)
             meanDevMovVar.append(movingVarianceDiff)
-            self._write("  Mean deviation for batch normalization layer %d: "
-                        "beta=%f, gamma=%f, moving mean=%f, moving variance=%f"
-                        % (i, betaDiff, gammaDiff,
-                           movingMeanDiff, movingVarianceDiff))
+            self._write("batch normalization %d | %f | %f | %f | %f"
+                        % ((i, betaDiff, gammaDiff,
+                           movingMeanDiff, movingVarianceDiff)))
 
         betaDev = np.sum(meanDevBeta) / len(meanDevBeta)
         gammaDev = np.sum(meanDevGamma) / len(meanDevGamma)
@@ -323,6 +348,10 @@ class Analysis:
     def _compare_conv2d(self, weight1, weight2):
         meanDevBias = []
         meanDevKernel = []
+
+        self._write("layer | bias | kernel")
+        self._write("-----|-----|-----")
+
         for i in range(1, CONV2D_LAYERS + 1):
             (bias1, kernel1) = self._get_conv2d_layer_data(1, weight1)
             (bias2, kernel2) = self._get_conv2d_layer_data(1, weight2)
@@ -331,8 +360,8 @@ class Analysis:
                 np.prod(kernel1.shape)
             meanDevBias.append(biasDiff)
             meanDevKernel.append(kernelDiff)
-            self._write("  Mean deviation for conv2D layer %d: "
-                        "bias=%f, kernel=%f"
+
+            self._write("conv2D %d | %f | %f"
                         % (i, biasDiff, kernelDiff))
 
         biasDev = np.sum(meanDevBias) / len(meanDevBias)
@@ -462,19 +491,13 @@ class Analysis:
                         str(np.max(spectrogram)))
         image = np.clip((spectrogram - np.min(spectrogram)) /
                         (np.max(spectrogram) - np.min(spectrogram)), 0, 1)
-        self._write("Shape of spectrogram is (%d, %d)"
-                    % (image.shape[0], image.shape[1]))
+        self._write("Shape of spectrogram is (%d, %d, %d)"
+                    % (image.shape[0], image.shape[1],
+                       self.config.get_channels()))
 
-    def _chopper_info(self, mashupSlices, acapellaSlices):
-        self._write("chop name: " + self.config.chopname, True)
-        self._write("slices created: %d" % len(mashupSlices), True)
-        self._write("Shape of first slice: %s"
-                    % (mashupSlices[0].shape,), True)
-        self._write("Shape of last slice: %s"
-                    % (mashupSlices[-1].shape,), True)
-        self._write("----------", True)
+    def chopper(self, file, chopparams=None, learnPhase="False"):
+        self.config.learn_phase = eval(learnPhase)
 
-    def chopper(self, file, chopparams=None):
         spectrogram = self._create_spectrogram_from_file(file)
         self._spectrogram_info(spectrogram)
 
@@ -492,23 +515,37 @@ class Analysis:
 
         params['upper'] = False
         self.config.chopparams = str(params)
+
+        self._write("## Chopper analysis")
         self._write("\nchop params: " + self.config.chopparams + "\n", True)
+        self._write("name | slices created "
+                    "| first slice shape | last slice shape")
+        self._write("-----|-----|-----|-----")
 
         for name in chopNames:
             self.config.chopname = name
             chop = Chopper().get()
             mashupSlices, acapellaSlices = chop(spectrogram, spectrogram)
-            self._chopper_info(mashupSlices, acapellaSlices)
+            self._write("%s | %d | %s | %s"
+                        % (self.config.chopname, len(mashupSlices),
+                           (mashupSlices[0].shape,),
+                           (mashupSlices[-1].shape,)))
 
         params['upper'] = True
         self.config.chopparams = str(params)
         self._write("\nchop params: " + self.config.chopparams + "\n", True)
+        self._write("name | slices created "
+                    "| first slice shape | last slice shape")
+        self._write("-----|-----|-----|-----")
 
         for name in chopNames:
             self.config.chopname = name
             chop = Chopper().get()
             mashupSlices, acapellaSlices = chop(spectrogram, spectrogram)
-            self._chopper_info(mashupSlices, acapellaSlices)
+            self._write("%s | %d | %s | %s"
+                        % (self.config.chopname, len(mashupSlices),
+                           (mashupSlices[0].shape,),
+                           (mashupSlices[-1].shape,)))
 
         self._save_analysis()
 
@@ -530,6 +567,10 @@ class Analysis:
 
         percentile = eval(self.config.normalizer_params)['percentile']
         if self.config.learn_phase:
+            self._write("form | real/imag | percentile "
+                        "| minimum | maximum | mean")
+            self._write("-----|-----|-----|-----|-----|-----")
+
             minS[0] = np.min(spectrogram[:, :, 0])
             maxS[0] = np.max(spectrogram[:, :, 0])
             meanS[0] = np.mean(spectrogram[:, :, 0])
@@ -540,14 +581,10 @@ class Analysis:
             meanS[1] = np.mean(spectrogram[:, :, 1])
             perc[1] = np.percentile(spectrogram[:, :, 1], percentile)
 
-            self._write("Original Real: Minimum %f, "
-                        "Maximum %f, Mean %f percentile %d value %f"
-                        % (minS[0], maxS[0], meanS[0],
-                           percentile, perc[0]), printAnyway=True)
-            self._write("Original Imag: Minimum %f, "
-                        "Maximum %f, Mean %f percentile %d value %f"
-                        % (minS[1], maxS[1], meanS[1],
-                           percentile, perc[1]), printAnyway=True)
+            self._write("original | real | %d | %f | %f | %f"
+                        % (percentile, minS[0], maxS[0], meanS[0]))
+            self._write("original | imag | %d | %f | %f | %f"
+                        % (percentile, minS[1], maxS[1], meanS[1]))
 
             spectrogram, norm = normalize(spectrogram)
 
@@ -561,14 +598,10 @@ class Analysis:
             meanS[1] = np.mean(spectrogram[:, :, 1])
             perc[1] = np.percentile(spectrogram[:, :, 1], percentile)
 
-            self._write("Normalized Real: Minimum %f, "
-                        "Maximum %f, Mean %f percentile %d value %f"
-                        % (minS[0], maxS[0], meanS[0],
-                           percentile, perc[0]), printAnyway=True)
-            self._write("Normalized Imag: Minimum %f, "
-                        "Maximum %f, Mean %f percentile %d value %f"
-                        % (minS[1], maxS[1], meanS[1],
-                           percentile, perc[1]), printAnyway=True)
+            self._write("normalized | real | %d | %f | %f | %f"
+                        % (percentile, minS[0], maxS[0], meanS[0]))
+            self._write("normalized | imag | %d | %f | %f | %f" %
+                        (percentile, minS[1], maxS[1], meanS[1]))
 
             spectrogram = denormalize(spectrogram, norm)
 
@@ -581,24 +614,22 @@ class Analysis:
             maxS[1] = np.max(spectrogram[:, :, 1])
             perc[1] = np.percentile(spectrogram[:, :, 1], percentile)
 
-            self._write("Denormalized Real: Minimum %f, "
-                        "Maximum %f, Mean %f percentile %d value %f"
-                        % (minS[0], maxS[0], meanS[0],
-                           percentile, perc[0]), printAnyway=True)
-            self._write("Denormalized Imag: Minimum %f, "
-                        "Maximum %f, Mean %f percentile %d value %f"
-                        % (minS[1], maxS[1], meanS[1],
-                           percentile, perc[1]), printAnyway=True)
+            self._write("denormalized | real | %d | %f | %f | %f"
+                        % (percentile, minS[0], maxS[0], meanS[0]))
+            self._write("denormalized | imag | %d | %f | %f | %f"
+                        % (percentile, minS[1], maxS[1], meanS[1]))
+
         else:
+            self._write("form | percentile | minimum | maximum | mean")
+            self._write("-----|-----|-----|-----|-----")
+
             minS[0] = np.min(spectrogram)
             maxS[0] = np.max(spectrogram)
             meanS[0] = np.mean(spectrogram)
             perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
 
-            self._write("Original: Minimum %f, Maximum %f, Mean %f "
-                        "percentile %d value %f"
-                        % (minS[0], maxS[0], meanS[0],
-                           percentile, perc[0]), printAnyway=True)
+            self._write("original | %d | %f | %f | %f"
+                        % (percentile, minS[0], maxS[0], meanS[0]))
 
             spectrogram, norm = normalize(spectrogram)
 
@@ -607,10 +638,8 @@ class Analysis:
             meanS[0] = np.mean(spectrogram)
             perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
 
-            self._write("Normalized: Minimum %f, Maximum %f, Mean %f "
-                        "percentile %d value %f"
-                        % (minS[0], maxS[0], meanS[0],
-                           percentile, perc[0]), printAnyway=True)
+            self._write("normalized | %d | %f | %f | %f"
+                        % (percentile, minS[0], maxS[0], meanS[0]))
 
             spectrogram = denormalize(spectrogram, norm)
 
@@ -619,10 +648,8 @@ class Analysis:
             meanS[0] = np.mean(spectrogram)
             perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
 
-            self._write("Denormalized Minimum %f, Maximum %f, Mean %f "
-                        "percentile %d value %f"
-                        % (minS[0], maxS[0], meanS[0],
-                           percentile, perc[0]), printAnyway=True)
+            self._write("denormalized | %d | %f | %f | %f"
+                        % (percentile, minS[0], maxS[0], meanS[0]))
 
         self._save_analysis()
 
