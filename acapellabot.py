@@ -18,6 +18,7 @@ import random
 import string
 import os
 import sys
+import signal
 
 import numpy as np
 from keras.utils import plot_model
@@ -242,6 +243,15 @@ class AcapellaBot:
         conversion.saveSpectrogram(spectrogram, outputFileNameBase + ".png")
 
 
+def get_signal_handler(acapellabot):
+    def signal_handler(signal, frame):
+        save = input("Should we save intermediate weights [y/n]? ")
+        if not save.lower().startswith("n"):
+            acapellabot.saveWeights(acapellabot.config.weights)
+        sys.exit(0)
+    return signal_handler
+
+
 if __name__ == "__main__":
     files = sys.argv[1:]
     config_str = str(config)
@@ -263,6 +273,7 @@ if __name__ == "__main__":
         console.h1("Loading Data")
         data = Data()
         console.h1("Training Model")
+        signal.signal(signal.SIGINT, get_signal_handler(acapellabot))
         acapellabot.run(data)
     elif len(files) > 0:
         console.log("Weights provided; performing inference on " +
