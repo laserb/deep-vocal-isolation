@@ -24,7 +24,8 @@ def expandToGrid(spectrogram, gridSize, channels):
     newY = ceil(spectrogram.shape[1] / gridSize) * gridSize
     newX = ceil(spectrogram.shape[0] / gridSize) * gridSize
     newSpectrogram = np.zeros((newX, newY, channels))
-    newSpectrogram[:spectrogram.shape[0], :spectrogram.shape[1], :] = spectrogram
+    newSpectrogram[:spectrogram.shape[0],
+                   :spectrogram.shape[1], :] = spectrogram
     return newSpectrogram
 
 
@@ -58,9 +59,6 @@ def audioFileToSpectrogram(audioFile, fftWindowSize, learn_phase=False):
         return stftToRealAndImag(spectrogram)
     else:
         return stftToAmplitude(spectrogram)
-
-# This is the nutty one
-
 
 
 def spectrogramToAudioFile(spectrogram, fftWindowSize,

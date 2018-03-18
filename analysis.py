@@ -10,6 +10,7 @@ from keras.layers import Input, Conv2D
 from keras.initializers import Ones, Zeros
 import h5py
 from chopper import Chopper
+from normalizer import Normalizer
 from acapellabot import AcapellaBot
 from checkpointer import ErrorVisualization
 from loss import Loss
@@ -448,11 +449,19 @@ class Analysis:
                 f.write(self.content)
 
     def _spectrogram_info(self, spectrogram):
-        spectrum = spectrogram
-        self._write("Range of spectrogram is " +
-                    str(np.min(spectrum)) + " -> " + str(np.max(spectrum)))
-        image = np.clip((spectrum - np.min(spectrum)) /
-                        (np.max(spectrum) - np.min(spectrum)), 0, 1)
+        if self.config.learn_phase:
+            self._write("Range of the real part is " +
+                        str(np.min(spectrogram[:, :, 0])) + " -> " +
+                        str(np.max(spectrogram[:, :, 0])))
+            self._write("Range of the imag part is " +
+                        str(np.min(spectrogram[:, :, 1])) + " -> " +
+                        str(np.max(spectrogram[:, :, 1])))
+        else:
+            self._write("Range of spectrogram is " +
+                        str(np.min(spectrogram)) + " -> " +
+                        str(np.max(spectrogram)))
+        image = np.clip((spectrogram - np.min(spectrogram)) /
+                        (np.max(spectrogram) - np.min(spectrogram)), 0, 1)
         self._write("Shape of spectrogram is (%d, %d)"
                     % (image.shape[0], image.shape[1]))
 
@@ -500,6 +509,122 @@ class Analysis:
             chop = Chopper().get()
             mashupSlices, acapellaSlices = chop(spectrogram, spectrogram)
             self._chopper_info(mashupSlices, acapellaSlices)
+
+        self._save_analysis()
+
+    def normalizer(self, file, learnPhase=False):
+        self.config.learn_phase = eval(learnPhase)
+        spectrogram = self._create_spectrogram_from_file(file)
+        self._spectrogram_info(spectrogram)
+
+        self.config.normalizer = "percentile"
+        self.config.normalizer_params = "{'percentile': 95}"
+        normalizer = Normalizer()
+        normalize = normalizer.get(both=False)
+        denormalize = normalizer.get_reverse()
+
+        minS = [0, 0]
+        maxS = [0, 0]
+        meanS = [0, 0]
+        perc = [0, 0]
+
+        percentile = eval(self.config.normalizer_params)['percentile']
+        if self.config.learn_phase:
+            minS[0] = np.min(spectrogram[:, :, 0])
+            maxS[0] = np.max(spectrogram[:, :, 0])
+            meanS[0] = np.mean(spectrogram[:, :, 0])
+            perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
+
+            minS[1] = np.min(spectrogram[:, :, 1])
+            maxS[1] = np.max(spectrogram[:, :, 1])
+            meanS[1] = np.mean(spectrogram[:, :, 1])
+            perc[1] = np.percentile(spectrogram[:, :, 1], percentile)
+
+            self._write("Original Real: Minimum %f, "
+                        "Maximum %f, Mean %f percentile %d value %f"
+                        % (minS[0], maxS[0], meanS[0],
+                           percentile, perc[0]), printAnyway=True)
+            self._write("Original Imag: Minimum %f, "
+                        "Maximum %f, Mean %f percentile %d value %f"
+                        % (minS[1], maxS[1], meanS[1],
+                           percentile, perc[1]), printAnyway=True)
+
+            spectrogram, norm = normalize(spectrogram)
+
+            minS[0] = np.min(spectrogram[:, :, 0])
+            maxS[0] = np.max(spectrogram[:, :, 0])
+            meanS[0] = np.mean(spectrogram[:, :, 0])
+            perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
+
+            minS[1] = np.min(spectrogram[:, :, 1])
+            maxS[1] = np.max(spectrogram[:, :, 1])
+            meanS[1] = np.mean(spectrogram[:, :, 1])
+            perc[1] = np.percentile(spectrogram[:, :, 1], percentile)
+
+            self._write("Normalized Real: Minimum %f, "
+                        "Maximum %f, Mean %f percentile %d value %f"
+                        % (minS[0], maxS[0], meanS[0],
+                           percentile, perc[0]), printAnyway=True)
+            self._write("Normalized Imag: Minimum %f, "
+                        "Maximum %f, Mean %f percentile %d value %f"
+                        % (minS[1], maxS[1], meanS[1],
+                           percentile, perc[1]), printAnyway=True)
+
+            spectrogram = denormalize(spectrogram, norm)
+
+            minS[0] = np.min(spectrogram[:, :, 0])
+            maxS[0] = np.max(spectrogram[:, :, 0])
+            meanS[0] = np.mean(spectrogram[:, :, 0])
+            perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
+
+            minS[1] = np.min(spectrogram[:, :, 1])
+            maxS[1] = np.max(spectrogram[:, :, 1])
+            perc[1] = np.percentile(spectrogram[:, :, 1], percentile)
+
+            self._write("Denormalized Real: Minimum %f, "
+                        "Maximum %f, Mean %f percentile %d value %f"
+                        % (minS[0], maxS[0], meanS[0],
+                           percentile, perc[0]), printAnyway=True)
+            self._write("Denormalized Imag: Minimum %f, "
+                        "Maximum %f, Mean %f percentile %d value %f"
+                        % (minS[1], maxS[1], meanS[1],
+                           percentile, perc[1]), printAnyway=True)
+        else:
+            minS[0] = np.min(spectrogram)
+            maxS[0] = np.max(spectrogram)
+            meanS[0] = np.mean(spectrogram)
+            perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
+
+            self._write("Original: Minimum %f, Maximum %f, Mean %f "
+                        "percentile %d value %f"
+                        % (minS[0], maxS[0], meanS[0],
+                           percentile, perc[0]), printAnyway=True)
+
+            spectrogram, norm = normalize(spectrogram)
+
+            minS[0] = np.min(spectrogram)
+            maxS[0] = np.max(spectrogram)
+            meanS[0] = np.mean(spectrogram)
+            perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
+
+            self._write("Normalized: Minimum %f, Maximum %f, Mean %f "
+                        "percentile %d value %f"
+                        % (minS[0], maxS[0], meanS[0],
+                           percentile, perc[0]), printAnyway=True)
+
+            spectrogram = denormalize(spectrogram, norm)
+
+            minS[0] = np.min(spectrogram)
+            maxS[0] = np.max(spectrogram)
+            meanS[0] = np.mean(spectrogram)
+            perc[0] = np.percentile(spectrogram[:, :, 0], percentile)
+
+            self._write("Denormalized Minimum %f, Maximum %f, Mean %f "
+                        "percentile %d value %f"
+                        % (minS[0], maxS[0], meanS[0],
+                           percentile, perc[0]), printAnyway=True)
+
+        self._save_analysis()
 
 
 if __name__ == "__main__":
