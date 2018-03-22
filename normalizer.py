@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import numpy as np
+import copy
 from hashlib import md5
 
 from config import config
@@ -19,8 +20,8 @@ class Normalizer(object):
             params = {}
         if both:
             def normalize_all(in_mashup, in_acapella):
-                mashup = in_mashup.copy()
-                acapella = in_acapella.copy()
+                mashup = copy.deepcopy(in_mashup)
+                acapella = copy.deepcopy(in_acapella)
                 for i in range(len(mashup)):
                     mashup[i], norm = function(mashup[i], **params)
                     acapella[i], _ = function(acapella[i], norm=norm, **params)
@@ -28,7 +29,7 @@ class Normalizer(object):
             return normalize_all
         else:
             def normalize(matrix, norm=None):
-                return function(matrix.copy(), norm=norm, **params)
+                return function(copy.deepcopy(matrix), norm=norm, **params)
             return normalize
 
     def get_reverse(self):
