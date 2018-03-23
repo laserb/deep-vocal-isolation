@@ -200,8 +200,6 @@ class AcapellaBot:
         conversion.saveSpectrogram(spectrogram, os.path.join(
             pathParts[0], fileNameParts[0]) + ".png")
 
-        newSpectrogram = np.clip(newSpectrogram, 0, 43)
-
         # save network output
         self.saveAudio(newSpectrogram,
                        fftWindowSize,
