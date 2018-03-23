@@ -3,7 +3,6 @@ import numpy as np
 import random
 from config import config
 from data import remove_track_boundaries
-from normalizer import Normalizer
 from chopper import Chopper
 
 
@@ -11,8 +10,6 @@ class Batch(object):
     def __init__(self):
         self.config = config
         self.batch_generator = self.config.batch_generator
-        normalizer = Normalizer()
-        self.normalize = normalizer.get()
 
     def get(self):
         return getattr(self, self.batch_generator)()
@@ -130,10 +127,7 @@ class Batch(object):
                     xTrack = features[t]
                     yTrack = labels[t]
 
-                    xSlices, ySlices = chop(xTrack, yTrack)
-
-                    feature, label = \
-                        self.normalize(xSlices, ySlices)
+                    feature, label = chop(xTrack, yTrack)
 
                     batch_features[i] = feature[0]
                     batch_labels[i] = label[0]
