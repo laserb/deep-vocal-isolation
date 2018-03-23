@@ -1,7 +1,5 @@
 import argparse
 import datetime
-
-import conversion
 import os
 import numpy as np
 from config import config
@@ -9,12 +7,18 @@ from keras.models import Model
 from keras.layers import Input, Conv2D
 from keras.initializers import Ones, Zeros
 import h5py
-from chopper import Chopper
-from normalizer import Normalizer
-from acapellabot import AcapellaBot
-from checkpointer import ErrorVisualization
-from loss import Loss
-from data import Data
+
+import matplotlib
+# The default tk backend does not work without X server
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # noqa: E402
+import conversion  # noqa: E402
+from chopper import Chopper  # noqa: E402
+from acapellabot import AcapellaBot  # noqa: E402
+from checkpointer import ErrorVisualization  # noqa: E402
+from loss import Loss  # noqa: E402
+from data import Data  # noqa: E402
+from normalizer import Normalizer  # noqa: E402
 
 BATCH_NORMALIZATIONINDEX = "batch_normalization_{}"
 CONV2DINDEX = "conv2d_{}"
@@ -652,6 +656,38 @@ class Analysis:
                         % (percentile, minS[0], maxS[0], meanS[0]))
 
         self._save_analysis()
+
+    def _get_histogram_prepare(self, data, normalize):
+        def _histogram_prepare(track):
+            track = data.prepare_spectrogram(track)
+            track, _ = normalize(track)
+            track = track.flatten()
+            return track
+        return _histogram_prepare
+
+    def _do_histogram(self, data, spectrograms, name):
+        normalize = Normalizer().get(both=False)
+        prepare = self._get_histogram_prepare(data, normalize)
+        values = np.array([])
+        for track in data.track_names:
+            t = prepare(spectrograms[track])
+            values = np.append(values, t)
+
+        n, _, _ = plt.hist(np.abs(values), bins='auto',
+                           log=True, cumulative=-1)
+        print(name)
+        print(list(n/max(n)))
+        plt.savefig("%s_hist.png" % name)
+        plt.close()
+
+        del values
+
+    def histogram(self):
+        data = Data()
+
+        self._do_histogram(data, data.mashup, "Mashup")
+        self._do_histogram(data, data.instrumental, "Instrumental")
+        self._do_histogram(data, data.acapella, "Acapella")
 
 
 if __name__ == "__main__":
