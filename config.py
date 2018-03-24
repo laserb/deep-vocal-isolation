@@ -88,7 +88,7 @@ class Config(object):
                                           "{'percentile': 95}")
 
         # Path to store all relevant data
-        self.log_base = self.get("LOGS", "./logs")
+        self.log_base = self.get("LOG_BASE", "./logs")
         self.logs = os.path.join(self.log_base, "last")
 
     def get_channels(self):
@@ -127,6 +127,10 @@ class Config(object):
     def get_logname(self):
         date = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         return date + "_" + "-".join([str(x) for x in self.get_character()])
+
+    def set(self, name, value):
+        setattr(self, name, value)
+        self._values[name.upper()] = value
 
     def get(self, var, default):
         value = os.environ.get(var, default).strip()
