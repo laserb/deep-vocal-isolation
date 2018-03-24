@@ -37,16 +37,14 @@ class MatrixRunner(object):
             if self.repeat is not None:
                 for i in range(self.repeat):
                     current["ix"] = "%s-%s" % (self.ix, i)
-                    self.config.create_logdir()
                     yield current
             else:
                 current["ix"] = self.ix
-                self.config.create_logdir()
                 yield current
         else:
             name = names[0]
             for value in self.data[name]:
-                setattr(self.config, name, value)
+                self.config.set(name, value)
                 current[name] = value
                 yield from self.create_config(names[1:], current)
 
