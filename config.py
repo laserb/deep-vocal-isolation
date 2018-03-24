@@ -100,7 +100,8 @@ class Config(object):
     def get_character(self):
         return [self.model, self.instrumental, self.chopname,
                 eval(self.chopparams).get('upper', False),
-                self.loss, self.optimizer, self.normalizer, self.learn_phase]
+                self.loss, self.optimizer, self.normalizer,
+                self.batch_generator, self.learn_phase]
 
     def get_validation_tracks(self):
         return ["SweetLights_YouLetMeDown",
