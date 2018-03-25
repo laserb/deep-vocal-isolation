@@ -32,7 +32,7 @@ class Config(object):
         self.phase = self.get_int("PHASE", 10)
         self.phase_iterations = self.get_int("PHASE_ITERATIONS", 10)
         # Learn phase
-        self.learn_phase = self.get_bool("LEARN_PHASE", False)
+        self.learn_phase = self.get_bool("LEARN_PHASE", True)
 
         # quit after training for specified epochs
         self.quit = self.get_bool("QUIT", True)
