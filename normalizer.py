@@ -60,6 +60,8 @@ class Normalizer(object):
 
                 matrix[:, :, 1] -= shift_imag
                 matrix[:, :, 1] /= scale_imag
+
+                matrix = np.clip(matrix, -1, 1)
             else:
                 matrix /= norm
             return matrix, norm
@@ -91,6 +93,8 @@ class Normalizer(object):
 
                 matrix[:, :, 0] /= scale_real
                 matrix[:, :, 1] /= scale_imag
+
+                matrix = np.clip(matrix, -1, 1)
 
                 return matrix, norm
             else:
