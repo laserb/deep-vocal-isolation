@@ -116,7 +116,8 @@ class Modeler(object):
         conv = Dropout(rate)(conv)
 
         conv = Conv2D(self.channels, 3, padding='same')(conv)
-        conv = LeakyReLU(alpha=alpha2)(conv)
+        if not self.config.learn_phase:
+            conv = LeakyReLU(alpha=alpha2)(conv)
 
         acapella = conv
         return Model(inputs=mashup, outputs=acapella)
