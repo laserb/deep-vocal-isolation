@@ -100,12 +100,12 @@ class Data:
         x = [self.prepare_spectrogram(s) for s in x]
         y = [self.prepare_spectrogram(s) for s in y]
 
+        x, y = normalize(x, y)
+
         mashupSlices = []
         outputSlices = []
         for mashup, output in zip(x, y):
             xSlices, ySlices = chop(mashup, output)
-            xSlices, ySlices = \
-                normalize(xSlices, ySlices)
 
             xSlices = np.array(xSlices)[:]
             ySlices = np.array(ySlices)[:]
@@ -114,6 +114,7 @@ class Data:
         return mashupSlices, outputSlices
 
     def prepare_random_data(self, tracks, post_process=False):
+        normalize = Normalizer().get()
         x = []
         y = []
         for track in tracks:
@@ -125,6 +126,7 @@ class Data:
 
         x = [self.prepare_spectrogram(s) for s in x]
         y = [self.prepare_spectrogram(s) for s in y]
+        x, y = normalize(x, y)
         return x, y
 
     def prepare_spectrogram(self, spectrogram):

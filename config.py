@@ -32,7 +32,7 @@ class Config(object):
         self.phase = self.get_int("PHASE", 10)
         self.phase_iterations = self.get_int("PHASE_ITERATIONS", 10)
         # Learn phase
-        self.learn_phase = self.get_bool("LEARN_PHASE", False)
+        self.learn_phase = self.get_bool("LEARN_PHASE", True)
 
         # quit after training for specified epochs
         self.quit = self.get_bool("QUIT", True)
@@ -85,7 +85,7 @@ class Config(object):
         # percentile normalization
         self.normalizer = self.get("NORMALIZER", "percentile")
         self.normalizer_params = self.get("NORMALIZER_PARAMS",
-                                          "{'percentile': 95}")
+                                          "{'percentile': 99}")
 
         # Path to store all relevant data
         self.log_base = self.get("LOG_BASE", "./logs")
