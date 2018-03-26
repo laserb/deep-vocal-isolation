@@ -1,7 +1,5 @@
 import argparse
 import datetime
-
-import conversion
 import os
 import numpy as np
 from config import config
@@ -9,12 +7,18 @@ from keras.models import Model
 from keras.layers import Input, Conv2D
 from keras.initializers import Ones, Zeros
 import h5py
-from chopper import Chopper
-from normalizer import Normalizer
-from acapellabot import AcapellaBot
-from checkpointer import ErrorVisualization
-from loss import Loss
-from data import Data
+
+import matplotlib
+# The default tk backend does not work without X server
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # noqa: E402
+import conversion  # noqa: E402
+from chopper import Chopper  # noqa: E402
+from acapellabot import AcapellaBot  # noqa: E402
+from checkpointer import ErrorVisualization  # noqa: E402
+from loss import Loss  # noqa: E402
+from data import Data  # noqa: E402
+from normalizer import Normalizer  # noqa: E402
 
 BATCH_NORMALIZATIONINDEX = "batch_normalization_{}"
 CONV2DINDEX = "conv2d_{}"
@@ -652,6 +656,114 @@ class Analysis:
                         % (percentile, minS[0], maxS[0], meanS[0]))
 
         self._save_analysis()
+
+    def _get_histogram_prepare(self, data, normalize):
+        def _histogram_prepare(track):
+            track = data.prepare_spectrogram(track)
+            track, _ = normalize(track)
+            track = track.flatten()
+            return track
+        return _histogram_prepare
+
+    def _do_histogram(self, data, spectrograms, name):
+        normalize = Normalizer().get(both=False)
+        prepare = self._get_histogram_prepare(data, normalize)
+        values = np.array([])
+        for track in data.track_names:
+            t = prepare(spectrograms[track])
+            values = np.append(values, t)
+
+        n, _, _ = plt.hist(np.abs(values), bins='auto',
+                           log=True, cumulative=-1)
+        print(name)
+        print(list(n/max(n)))
+        plt.savefig("%s_hist.png" % name)
+        plt.close()
+
+        del values
+
+    def histogram(self):
+        data = Data()
+
+        self._do_histogram(data, data.mashup, "Mashup")
+        self._do_histogram(data, data.instrumental, "Instrumental")
+        self._do_histogram(data, data.acapella, "Acapella")
+
+    def percentile(self):
+        data = Data()
+
+        self._do_percentile(data, data.mashup, "Mashup")
+        self._do_percentile(data, data.instrumental, "Instrumental")
+        self._do_percentile(data, data.acapella, "Acapella")
+
+    def _do_percentile(self, data, spectrograms, name):
+
+        pbar = None
+        try:
+            from progressbar import ProgressBar, Percentage, Bar
+            pbar = ProgressBar(widgets=[Percentage(), Bar()],
+                               maxval=len(data.track_names)*101)
+            pbar.start()
+        except Exception as e:
+            pass
+
+        k = 0
+        if config.learn_phase:
+            y_real = [[] for _ in range(101)]
+            y_imag = [[] for _ in range(101)]
+            for track in sorted(data.track_names):
+                t = data.prepare_spectrogram(spectrograms[track])
+                median_real = np.median(t[:, :, 0])
+                median_imag = np.median(t[:, :, 1])
+                for i in range(101):
+                    if pbar is not None:
+                        pbar.update(k)
+                    k += 1
+                    v = np.percentile(t[:, :, 0], i)
+                    y_real[i].append(v-median_real)
+
+                    v = np.percentile(t[:, :, 1], i)
+                    y_imag[i].append(v-median_imag)
+
+            plt.figure(figsize=(15, 15))
+            plt.subplot(211)
+            result = plt.boxplot(y_real, labels=range(101))
+            print([l.get_ydata()[0] for l in result["medians"]])
+            plt.xticks(rotation=90)
+            plt.title("Real")
+            plt.xlabel("percentile")
+            plt.ylabel("difference from median")
+
+            plt.subplot(212)
+            result = plt.boxplot(y_imag, labels=range(101))
+            print([l.get_ydata()[0] for l in result["medians"]])
+            plt.xticks(rotation=90)
+            plt.title("Imag")
+            plt.xlabel("percentile")
+            plt.ylabel("difference from median")
+            plt.savefig("percentile_%s_ir.png" % name)
+            plt.close()
+        else:
+            y = [[] for _ in range(101)]
+            for track in data.track_names:
+                t = data.prepare_spectrogram(spectrograms[track])
+                median = np.median(t)
+                for i in range(101):
+                    if pbar is not None:
+                        pbar.update(k)
+                    k += 1
+                    v = np.percentile(t, i)
+                    y[i].append(v-median)
+
+            plt.figure(figsize=(15, 15))
+            result = plt.boxplot(y, labels=range(101))
+            print([l.get_ydata()[0] for l in result["medians"]])
+            plt.xticks(rotation=90)
+            plt.title("Amplitude")
+            plt.xlabel("percentile")
+            plt.ylabel("difference from median")
+            plt.savefig("percentile_%s_amplitude.png" % name)
+            plt.close()
 
 
 if __name__ == "__main__":
