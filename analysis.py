@@ -768,9 +768,9 @@ class Analysis:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--analyse", default=None, type=str,
+    parser.add_argument("--analyse", "-a", default=None, type=str,
                         help="analysis to be executed")
-    parser.add_argument("--save", action='store_true',
+    parser.add_argument("--save", "-s", action='store_true',
                         help="save analysis output to file")
     parser.add_argument("args", nargs="*", default=[])
 
