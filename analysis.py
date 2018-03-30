@@ -827,6 +827,42 @@ class Analysis:
         d = octave.stoi(clean, processed, sampling_rate)
         self._write("stoi: %f" % d)
 
+    def mse(self, processed=None, vocal=None):
+        self.mean_squared_error(processed, vocal)
+
+    def mean_squared_error(self, processed_file=None, vocal_file=None):
+        normalizer = Normalizer()
+        normalize = normalizer.get(both=False)
+        if processed_file is None:
+            acapellabot = AcapellaBot(config)
+            acapellabot.loadWeights(config.weights)
+            data = Data()
+            mses = []
+            for track in data.validation_tracks + data.test_tracks:
+                mashup = data.prepare_spectrogram(data.mashup[track])
+                vocal = data.prepare_spectrogram(data.acapella[track])
+                mashup, norm = normalize(mashup)
+                vocal, _ = normalize(vocal, norm)
+                info = acapellabot.process_spectrogram(mashup,
+                                                       config.get_channels())
+                newSpectrogram = info[1]
+                mse = ((newSpectrogram - vocal)**2).mean()
+                mses.append(mse)
+                print(track, mse)
+            print(np.mean(mses))
+        else:
+            vocal_audio, _ = conversion.loadAudioFile(vocal_file)
+            processed_audio, _ = conversion.loadAudioFile(processed_file)
+
+            # make sure audios have the same length
+            vocal_audio = vocal_audio[:processed_audio.shape[0]]
+            processed_audio = processed_audio[:vocal_audio.shape[0]]
+
+            wave_mse = ((vocal_audio - processed_audio)**2).mean()
+
+            print("\n")
+            self._write("Wave mean squared error: %s" % wave_mse)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
