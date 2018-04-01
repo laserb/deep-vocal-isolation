@@ -677,7 +677,9 @@ class Analysis:
                            log=True, cumulative=-1)
         print(name)
         print(list(n/max(n)))
-        plt.savefig("%s_hist.png" % name)
+        if not os.path.exists(analysisPath):
+            os.mkdir(analysisPath)
+        plt.savefig(os.path.join(analysisPath, "%s_hist.png" % name))
         plt.close()
 
         del values
@@ -741,7 +743,10 @@ class Analysis:
             plt.title("Imag")
             plt.xlabel("percentile")
             plt.ylabel("difference from median")
-            plt.savefig("percentile_%s_ir.png" % name)
+            if not os.path.exists(analysisPath):
+                os.mkdir(analysisPath)
+            plt.savefig(os.path.join(analysisPath,
+                                     "percentile_%s_ir.png" % name))
             plt.close()
         else:
             y = [[] for _ in range(101)]
@@ -762,7 +767,10 @@ class Analysis:
             plt.title("Amplitude")
             plt.xlabel("percentile")
             plt.ylabel("difference from median")
-            plt.savefig("percentile_%s_amplitude.png" % name)
+            if not os.path.exists(analysisPath):
+                os.mkdir(analysisPath)
+            plt.savefig(os.path.join(analysisPath,
+                                     "percentile_%s_amplitude.png" % name))
             plt.close()
 
 
