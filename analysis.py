@@ -677,9 +677,9 @@ class Analysis:
                            log=True, cumulative=-1)
         print(name)
         print(list(n/max(n)))
-        if not os.path.exists(analysisPath):
-            os.mkdir(analysisPath)
-        plt.savefig(os.path.join(analysisPath, "%s_hist.png" % name))
+        if not os.path.exists(self.analysisPath):
+            os.mkdir(self.analysisPath)
+        plt.savefig(os.path.join(self.analysisPath, "%s_hist.png" % name))
         plt.close()
 
         del values
@@ -743,9 +743,9 @@ class Analysis:
             plt.title("Imag")
             plt.xlabel("percentile")
             plt.ylabel("difference from median")
-            if not os.path.exists(analysisPath):
-                os.mkdir(analysisPath)
-            plt.savefig(os.path.join(analysisPath,
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            plt.savefig(os.path.join(self.analysisPath,
                                      "percentile_%s_ir.png" % name))
             plt.close()
         else:
@@ -767,9 +767,9 @@ class Analysis:
             plt.title("Amplitude")
             plt.xlabel("percentile")
             plt.ylabel("difference from median")
-            if not os.path.exists(analysisPath):
-                os.mkdir(analysisPath)
-            plt.savefig(os.path.join(analysisPath,
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            plt.savefig(os.path.join(self.analysisPath,
                                      "percentile_%s_amplitude.png" % name))
             plt.close()
 
@@ -862,6 +862,68 @@ class Analysis:
 
             print("\n")
             self._write("Wave mean squared error: %s" % wave_mse)
+
+    def volume(self, filepath):
+        normalizer = Normalizer()
+        normalize = normalizer.get(both=False)
+        denormalize = normalizer.get_reverse()
+
+        vocal_file = filepath.replace("_all.wav", "_acapella.wav")
+        instrumental_file = filepath.replace("_all.wav", "_instrumental.wav")
+
+        acapellabot = AcapellaBot(config)
+        acapellabot.loadWeights(config.weights)
+
+        instrumental_audio, _ = conversion.loadAudioFile(instrumental_file)
+        vocal_audio, _ = conversion.loadAudioFile(vocal_file)
+
+        instrumental = conversion.audioFileToSpectrogram(
+            instrumental_audio, fftWindowSize=config.fft,
+            learn_phase=self.config.learn_phase)
+        vocal = conversion.audioFileToSpectrogram(
+            vocal_audio, fftWindowSize=config.fft,
+            learn_phase=self.config.learn_phase)
+
+        x = [i/10 for i in range(1, 10)] + \
+            [1] + \
+            [10/i for i in range(9, 0, -1)]
+
+        print("Unscaled original mix")
+        mashup, norm = normalize(instrumental + vocal)
+        acapella, _ = normalize(vocal, norm)
+        info = acapellabot.process_spectrogram(mashup,
+                                               config.get_channels())
+        newSpectrogram = denormalize(info[1], norm)
+        mse = ((newSpectrogram - vocal)**2).mean()
+        y = [mse for _ in x]
+        plt.semilogx(x, y, label="baseline")
+
+        original_ratio = np.max(vocal)/np.max(instrumental)
+        print("Original ratio: %s" % original_ratio)
+        vocal /= original_ratio
+
+        print("Change vocal volume")
+        y = []
+        for i in x:
+            mashup, norm = normalize(instrumental + i * vocal)
+            acapella, _ = normalize(i * vocal, norm)
+            info = acapellabot.process_spectrogram(mashup,
+                                                   config.get_channels())
+            newSpectrogram = denormalize(info[1], norm)
+            if i != 0:
+                newSpectrogram = newSpectrogram / i
+
+            mse = ((newSpectrogram - vocal)**2).mean()
+            y.append(mse)
+            print(mse)
+        plt.semilogx(x, y, label="scaled")
+
+        plt.xlabel("vocal/instrumental")
+        plt.ylabel("mean squared error")
+        plt.legend()
+        if not os.path.exists(self.analysisPath):
+            os.mkdir(self.analysisPath)
+        plt.savefig(os.path.join(self.analysisPath, "volume.png"))
 
 
 if __name__ == "__main__":
