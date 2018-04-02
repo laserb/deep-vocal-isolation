@@ -677,7 +677,9 @@ class Analysis:
                            log=True, cumulative=-1)
         print(name)
         print(list(n/max(n)))
-        plt.savefig("%s_hist.png" % name)
+        if not os.path.exists(analysisPath):
+            os.mkdir(analysisPath)
+        plt.savefig(os.path.join(analysisPath, "%s_hist.png" % name))
         plt.close()
 
         del values
@@ -741,7 +743,10 @@ class Analysis:
             plt.title("Imag")
             plt.xlabel("percentile")
             plt.ylabel("difference from median")
-            plt.savefig("percentile_%s_ir.png" % name)
+            if not os.path.exists(analysisPath):
+                os.mkdir(analysisPath)
+            plt.savefig(os.path.join(analysisPath,
+                                     "percentile_%s_ir.png" % name))
             plt.close()
         else:
             y = [[] for _ in range(101)]
@@ -762,15 +767,18 @@ class Analysis:
             plt.title("Amplitude")
             plt.xlabel("percentile")
             plt.ylabel("difference from median")
-            plt.savefig("percentile_%s_amplitude.png" % name)
+            if not os.path.exists(analysisPath):
+                os.mkdir(analysisPath)
+            plt.savefig(os.path.join(analysisPath,
+                                     "percentile_%s_amplitude.png" % name))
             plt.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--analyse", default=None, type=str,
+    parser.add_argument("--analyse", "-a", default=None, type=str,
                         help="analysis to be executed")
-    parser.add_argument("--save", action='store_true',
+    parser.add_argument("--save", "-s", action='store_true',
                         help="save analysis output to file")
     parser.add_argument("args", nargs="*", default=[])
 
