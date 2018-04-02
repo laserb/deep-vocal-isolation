@@ -773,6 +773,60 @@ class Analysis:
                                      "percentile_%s_amplitude.png" % name))
             plt.close()
 
+    def stoi(self, filepath, clean_filepath=None):
+        # filepath = path to mashup
+        # Needs octave and octave-signal installed
+        # Use "pip install oct2py" to install python - octave bridge
+        # STOI assumes
+        # * a sampling rate of 10kHz, resamples otherwise
+        # * window length of 384ms
+        # * 15 third octave bands over full frequency range
+        # * overlapping segments with hanning window
+        # * removes silent frames
+        import librosa
+        from oct2py import octave
+        if clean_filepath is None:
+            # No clean file given.
+            # Get processed and clean file from mashup.
+            acapellabot = AcapellaBot(config)
+            acapellabot.loadWeights(config.weights)
+            audio, sampleRate = conversion.loadAudioFile(filepath)
+            spectrogram = conversion.audioFileToSpectrogram(
+                audio, fftWindowSize=config.fft,
+                learn_phase=self.config.learn_phase)
+
+            normalizer = Normalizer()
+            normalize = normalizer.get(both=False)
+            denormalize = normalizer.get_reverse()
+
+            # normalize
+            spectogram, norm = normalize(spectrogram)
+
+            info = acapellabot.process_spectrogram(spectrogram,
+                                                   config.get_channels())
+            spectrogram, newSpectrogram = info
+            # de-normalize
+            newSpectrogram = denormalize(newSpectrogram, norm)
+
+            processed = conversion.spectrogramToAudioFile(newSpectrogram,
+                                                          config.fft,
+                                                          config.phase)
+
+            clean_filepath = filepath.replace("_all.wav", "_acapella.wav")
+            clean, sampling_rate = librosa.load(clean_filepath)
+        else:
+            # A clean file is given.
+            # Compare it with the processed audio.
+            processed, sampling_rate = librosa.load(filepath)
+            clean, sampling_rate = librosa.load(clean_filepath)
+
+        # Make sure the original and processed audio have the same length
+        clean = clean[:processed.shape[0]]
+
+        octave.eval("pkg load signal")
+        d = octave.stoi(clean, processed, sampling_rate)
+        self._write("stoi: %f" % d)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
