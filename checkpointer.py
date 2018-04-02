@@ -79,20 +79,29 @@ class ErrorVisualization(Callback):
                             axis=0)
 
         error /= (100*n)
-        error = error[:, :, 0]
-        top_val = np.max(error)
-        # scale to range 0, 1
-        error /= top_val
+        print(np.mean(error))
+        print(np.max(error))
+        all_error = error
+        if self.bot.config.learn_phase:
+            parts = ["real", "imag"]
+        else:
+            parts = ["amplitude"]
+        for i, part in enumerate(parts):
+            error = all_error[:, :, i]
+            top_val = np.max(error)
+            # scale to range 0, 1
+            error /= top_val
 
-        cm_hot = get_cmap('magma')
-        im = cm_hot(error)
+            cm_hot = get_cmap('magma')
+            im = cm_hot(error)
 
-        # scale to range 0, 255
-        im = np.uint8(im * 255)
+            # scale to range 0, 255
+            im = np.uint8(im * 255)
 
-        im = Image.fromarray(im)
-        image_path = os.path.join(self.bot.config.logs, "images")
-        if not os.path.exists(image_path):
-            os.mkdir(image_path)
-        im.save("%s/error%03d-%f.png" % (image_path, epoch, top_val),
-                format='PNG')
+            im = Image.fromarray(im)
+            image_path = os.path.join(self.bot.config.logs, "images")
+            if not os.path.exists(image_path):
+                os.mkdir(image_path)
+            im.save("%s/error%03d-%s-%f.png"
+                    % (image_path, epoch, part, top_val),
+                    format='PNG')
