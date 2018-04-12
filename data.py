@@ -78,6 +78,7 @@ class Data:
         params["upper"] = False
         chopper.name = "sliding_full"
         params["step"] = 32
+        params["scale"] = 128
         chopper.params = str(params)
         chop = chopper.get()
         xValid, yValid = self.prepare_data(chop, self.validation_tracks)
