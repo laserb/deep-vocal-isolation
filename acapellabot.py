@@ -155,8 +155,15 @@ class AcapellaBot:
 
         slices = chop(spectrogram)
 
+        normalizer = Normalizer()
+        normalize = normalizer.get(both=False)
+        denormalize = normalizer.get_reverse()
+
         newSpectrogram = np.zeros((spectrogram.shape[0], 0, channels))
         for slice in slices:
+            # normalize
+            slice, norm = normalize(slice)
+
             expandedSpectrogram = conversion.expandToGrid(
                 slice, self.peakDownscaleFactor, channels)
             expandedSpectrogramWithBatchAndChannels = \
@@ -169,6 +176,9 @@ class AcapellaBot:
                 predictedSpectrogramWithBatchAndChannels[0, :, :, :]
             localSpectrogram = predictedSpectrogram[:slice.shape[0],
                                                     :slice.shape[1], :]
+
+            # de-normalize
+            localSpectrogram = denormalize(localSpectrogram, norm)
 
             newSpectrogram = np.concatenate((newSpectrogram, localSpectrogram),
                                             axis=1)
@@ -184,19 +194,8 @@ class AcapellaBot:
             learn_phase=self.config.learn_phase)
         console.log("Retrieved spectrogram; processing...")
 
-        normalizer = Normalizer()
-        normalize = normalizer.get(both=False)
-        denormalize = normalizer.get_reverse()
-
-        # normalize
-        spectogram, norm = normalize(spectrogram)
-
         info = self.process_spectrogram(spectrogram, channels)
         spectrogram, newSpectrogram = info
-
-        # de-normalize
-        newSpectrogram = denormalize(newSpectrogram, norm)
-        spectrogram = denormalize(spectrogram, norm)
 
         console.log("reconverting to audio")
 
