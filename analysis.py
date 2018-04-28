@@ -727,6 +727,13 @@ class Analysis:
                     v = np.percentile(t[:, :, 1], i)
                     y_imag[i].append(v-median_imag)
 
+            h5f = h5py.File("ir-percentile-%s.hdf5" % name, "w")
+            h5f.create_dataset(name="real",
+                               data=y_real)
+            h5f.create_dataset(name="imag",
+                               data=y_imag)
+            h5f.close()
+
             plt.figure(figsize=(15, 15))
             plt.subplot(211)
             result = plt.boxplot(y_real, labels=range(101))
@@ -759,6 +766,11 @@ class Analysis:
                     k += 1
                     v = np.percentile(t, i)
                     y[i].append(v-median)
+
+            h5f = h5py.File("amp-percentile-%s.hdf5" % name, "w")
+            h5f.create_dataset(name="value",
+                               data=y)
+            h5f.close()
 
             plt.figure(figsize=(15, 15))
             result = plt.boxplot(y, labels=range(101))
