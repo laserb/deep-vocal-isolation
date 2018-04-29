@@ -15,7 +15,7 @@ def loadAudioFile(filePath):
 
 
 def saveAudioFile(audioFile, filePath, sampleRate):
-    librosa.output.write_wav(filePath, audioFile, sampleRate, norm=True)
+    librosa.output.write_wav(filePath, audioFile, sampleRate, norm=False)
     console.info("Wrote audio file to", filePath)
 
 
