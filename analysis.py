@@ -937,6 +937,127 @@ class Analysis:
             os.mkdir(self.analysisPath)
         plt.savefig(os.path.join(self.analysisPath, "volume.png"))
 
+    def distribution(self):
+        data = Data()
+
+        self._do_distribution(data, data.mashup, "Mashup")
+        self._do_distribution(data, data.instrumental, "Instrumental")
+        self._do_distribution(data, data.acapella, "Acapella")
+
+    def _do_distribution_plot(self, pbar, h5f, data, spectrograms,
+                              bin_range, part, prefix=""):
+        k = 0
+        vals = []
+        for track in sorted(data.track_names):
+            spectrogram = data.prepare_spectrogram(spectrograms[track])
+            if pbar is not None:
+                pbar.update(k)
+            k += 1
+
+            channel = 0
+            if prefix == "imag":
+                channel = 1
+
+            window = spectrogram.shape[0] // 2
+            if part == "upper":
+                window_values = spectrogram[0:window, :, channel]
+            elif part == "center":
+                window_values = spectrogram[window // 2: window // 2 + window, :, channel]  # noqa
+            else:
+                window_values = spectrogram[-window:, :, channel]
+            vals += window_values[:, :].flatten().tolist()
+
+        if bin_range is None:
+            if config.learn_phase:
+                bin_min = np.percentile(vals, 1)
+            else:
+                bin_min = 0
+            bin_max = np.percentile(vals, 99)
+            bin_range = (bin_min, bin_max)
+
+        values, bins, patches = plt.hist(vals,
+                                         range=bin_range,
+                                         bins=25,
+                                         label="%s %s" % (prefix, part))
+        plt.legend()
+        h5f.create_dataset(name="%s_values" % part, data=values)
+        h5f.create_dataset(name="%s_bins" % part, data=bins)
+        del vals
+        return bin_range
+
+    def _do_distribution(self, data, spectrograms, name):
+
+        pbar = None
+        try:
+            from progressbar import ProgressBar, Percentage, Bar
+            pbar = ProgressBar(widgets=[Percentage(), Bar()],
+                               maxval=len(data.track_names))
+            pbar.start()
+        except Exception as e:
+            pass
+
+        if config.learn_phase:
+            h5file = h5py.File("distribution_ir_%s.hdf5" % name, "w")
+            h5real = h5file.create_group("real")
+            h5imag = h5file.create_group("imag")
+
+            plt.figure(figsize=(15, 15))
+            plt.suptitle(name)
+            ax1 = plt.subplot(231)
+            bins = self._do_distribution_plot(pbar, h5real, data, spectrograms,
+                                              None, "upper", "real")
+
+            plt.subplot(232, sharey=ax1, sharex=ax1)
+            self._do_distribution_plot(pbar, h5real, data, spectrograms,
+                                       bins, "center", "real")
+
+            plt.subplot(233, sharey=ax1, sharex=ax1)
+            self._do_distribution_plot(pbar, h5real, data, spectrograms,
+                                       bins, "lower", "real")
+
+            ax1 = plt.subplot(234)
+            bins = self._do_distribution_plot(pbar, h5imag, data, spectrograms,
+                                              None, "upper", "imag")
+
+            plt.subplot(235, sharey=ax1, sharex=ax1)
+            self._do_distribution_plot(pbar, h5imag, data, spectrograms,
+                                       bins, "center", "imag")
+
+            plt.subplot(236, sharey=ax1, sharex=ax1)
+            self._do_distribution_plot(pbar, h5imag, data, spectrograms,
+                                       bins, "lower", "imag")
+
+            h5file.close()
+
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            plt.savefig(os.path.join(self.analysisPath,
+                                     "distribution_%s_ir.png" % name))
+            plt.close()
+        else:
+            h5file = h5py.File("distribution_amplitude_%s.hdf5" % name, "w")
+
+            plt.figure(figsize=(15, 15))
+            plt.suptitle(name)
+            ax1 = plt.subplot(131)
+            bins = self._do_distribution_plot(pbar, h5file, data, spectrograms,
+                                              None, "upper")
+
+            plt.subplot(132, sharey=ax1, sharex=ax1)
+            self._do_distribution_plot(pbar, h5file, data, spectrograms,
+                                       bins, "center")
+
+            plt.subplot(133, sharey=ax1, sharex=ax1)
+            self._do_distribution_plot(pbar, h5file, data, spectrograms,
+                                       bins, "lower")
+            h5file.close()
+
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            plt.savefig(os.path.join(self.analysisPath,
+                                     "distribution_%s_amplitude.png" % name))
+            plt.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
