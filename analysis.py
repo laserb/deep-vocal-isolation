@@ -895,10 +895,13 @@ class Analysis:
         vocal = conversion.audioFileToSpectrogram(
             vocal_audio, fftWindowSize=config.fft,
             learn_phase=self.config.learn_phase)
+        h5file = h5py.File("volume.hdf5", "w")
 
-        x = [i/10 for i in range(1, 10)] + \
+        ratio = 100
+        x = [i/ratio for i in range(1, ratio)] + \
             [1] + \
-            [10/i for i in range(9, 0, -1)]
+            [ratio/i for i in range(ratio-1, 0, -1)]
+        h5file.create_dataset(name="x", data=x)
 
         print("Unscaled original mix")
         mashup, norm = normalize(instrumental + vocal)
@@ -908,7 +911,8 @@ class Analysis:
         newSpectrogram = denormalize(info[1], norm)
         mse = ((newSpectrogram - vocal)**2).mean()
         y = [mse for _ in x]
-        plt.semilogx(x, y, label="baseline")
+        plt.loglog(x, y, label="baseline")
+        h5file.create_dataset(name="baseline", data=y)
 
         original_ratio = np.max(vocal)/np.max(instrumental)
         print("Original ratio: %s" % original_ratio)
@@ -928,11 +932,14 @@ class Analysis:
             mse = ((newSpectrogram - vocal)**2).mean()
             y.append(mse)
             print(mse)
-        plt.semilogx(x, y, label="scaled")
+        plt.loglog(x, y, label="scaled")
 
         plt.xlabel("vocal/instrumental")
         plt.ylabel("mean squared error")
         plt.legend()
+
+        h5file.create_dataset(name="scale", data=y)
+        h5file.close()
         if not os.path.exists(self.analysisPath):
             os.mkdir(self.analysisPath)
         plt.savefig(os.path.join(self.analysisPath, "volume.png"))
