@@ -5,7 +5,7 @@ Ported nigh-verbatim from a similar file I use for node
 import time as sysTime
 
 
-class colors:
+class Colors:
     END = "\033[0m"
     BRIGHT = "\033[1m"
     DIM = "\033[2m"
@@ -37,43 +37,43 @@ def fmt(iterable):
 
 
 def h1(*args):
-    print(colors.BRIGHT, fmt(args), colors.END)
+    print(Colors.BRIGHT, fmt(args), Colors.END)
 
 
 def wait(*args):
-    input(colors.BLUE + fmt(args) + colors.END)
+    input(Colors.BLUE + fmt(args) + Colors.END)
 
 
 def log(*args):
-    print(colors.YELLOW, fmt(args), colors.END)
+    print(Colors.YELLOW, fmt(args), Colors.END)
 
 
 def info(*args):
-    print(colors.DIM + "\t", fmt(args), colors.END)
+    print(Colors.DIM + "\t", fmt(args), Colors.END)
 
 
 def debug(*args):
-    print(colors.DK_BLUE + "\t", fmt(args), colors.END)
+    print(Colors.DK_BLUE + "\t", fmt(args), Colors.END)
 
 
 def warn(*args):
-    print(colors.DK_CYAN + "WARN:\t" + colors.END +
-          colors.CYAN, fmt(args), colors.END)
+    print(Colors.DK_CYAN + "WARN:\t" + Colors.END +
+          Colors.CYAN, fmt(args), Colors.END)
 
 
 def error(*args):
-    print(colors.DK_RED + colors.BLINK + "ERROR:\t" +
-          colors.END + colors.RED, fmt(args), colors.END)
+    print(Colors.DK_RED + Colors.BLINK + "ERROR:\t" +
+          Colors.END + Colors.RED, fmt(args), Colors.END)
 
 
 def time(key):
     timers[key] = sysTime.time()
 
 
-def timeEnd(key):
+def time_end(key):
     if key in timers:
         t = sysTime.time() - timers[key]
-        print("\t" + str(t) + colors.DIM + " s \t" + key + colors.END)
+        print("\t" + str(t) + Colors.DIM + " s \t" + key + Colors.END)
         del timers[key]
 
 

@@ -66,16 +66,16 @@ class ErrorVisualization(Callback):
         self.bot = bot
 
     def on_epoch_end(self, epoch, logs={}):
-        xValid = self.bot.xValid
-        yValid = self.bot.yValid
+        x_valid = self.bot.x_valid
+        y_valid = self.bot.y_valid
 
-        error = np.zeros(yValid[0].shape)
+        error = np.zeros(y_valid[0].shape)
 
-        n = len(xValid) // 100
+        n = len(x_valid) // 100
         for i in range(n):
-            y_pred = self.bot.model.predict(xValid[i*100:(i+1)*100],
+            y_pred = self.bot.model.predict(x_valid[i*100:(i+1)*100],
                                             batch_size=8)
-            error += np.sum(np.square(y_pred - yValid[i*100:(i+1)*100]),
+            error += np.sum(np.square(y_pred - y_valid[i*100:(i+1)*100]),
                             axis=0)
 
         error /= (100*n)

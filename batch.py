@@ -78,19 +78,19 @@ class Batch(object):
             # Create empty arrays to contain batch of features and labels
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
-            nTracks = len(features)
+            n_tracks = len(features)
             while True:
                 for i in range(batch_size):
                     # get random track
-                    t = random.randrange(nTracks)
-                    xTrack = features[t]
-                    yTrack = labels[t]
+                    t = random.randrange(n_tracks)
+                    x_track = features[t]
+                    y_track = labels[t]
 
                     # get random slice
-                    s = random.randrange(len(xTrack))
+                    s = random.randrange(len(x_track))
 
-                    batch_features[i] = xTrack[s]
-                    batch_labels[i] = yTrack[s]
+                    batch_features[i] = x_track[s]
+                    batch_labels[i] = y_track[s]
                 yield batch_features, batch_labels
         return generator
 
@@ -119,15 +119,15 @@ class Batch(object):
             # Create empty arrays to contain batch of features and labels
             batch_features = np.zeros((batch_size, *shape))
             batch_labels = np.zeros((batch_size, *shape))
-            nTracks = len(features)
+            n_tracks = len(features)
             while True:
                 for i in range(batch_size):
                     # get random track
-                    t = random.randrange(nTracks)
-                    xTrack = features[t]
-                    yTrack = labels[t]
+                    t = random.randrange(n_tracks)
+                    x_track = features[t]
+                    y_track = labels[t]
 
-                    feature, label = chop(xTrack, yTrack)
+                    feature, label = chop(x_track, y_track)
 
                     batch_features[i] = feature[0]
                     batch_labels[i] = label[0]

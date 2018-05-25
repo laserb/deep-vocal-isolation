@@ -14,12 +14,6 @@ from acapellabot import AcapellaBot  # noqa: E402
 from data import Data  # noqa: E402
 from normalizer import Normalizer  # noqa: E402
 
-BATCH_NORMALIZATIONINDEX = "batch_normalization_{}"
-CONV2DINDEX = "conv2d_{}"
-
-BATCH_LAYERS = 4
-CONV2D_LAYERS = 12
-
 
 class Analysis:
     def __init__(self):
@@ -154,8 +148,8 @@ class Analysis:
             # Get processed and clean file from mashup.
             acapellabot = AcapellaBot(config)
             acapellabot.loadWeights(config.weights)
-            audio, sampleRate = conversion.loadAudioFile(filepath)
-            spectrogram = conversion.audioFileToSpectrogram(
+            audio, sampleRate = conversion.load_audio_file(filepath)
+            spectrogram = conversion.audio_file_to_spectrogram(
                 audio, fftWindowSize=config.fft,
                 learn_phase=self.config.learn_phase)
 
@@ -168,13 +162,13 @@ class Analysis:
 
             info = acapellabot.process_spectrogram(spectrogram,
                                                    config.get_channels())
-            spectrogram, newSpectrogram = info
+            spectrogram, new_spectrogram = info
             # de-normalize
-            newSpectrogram = denormalize(newSpectrogram, norm)
+            new_spectrogram = denormalize(new_spectrogram, norm)
 
-            processed = conversion.spectrogramToAudioFile(newSpectrogram,
-                                                          config.fft,
-                                                          config.phase)
+            processed = conversion.spectrogram_to_audio_file(new_spectrogram,
+                                                             config.fft,
+                                                             config.phase)
 
             clean_filepath = filepath.replace("_all.wav", "_acapella.wav")
             clean, sampling_rate = librosa.load(clean_filepath)
@@ -209,14 +203,14 @@ class Analysis:
                 vocal, _ = normalize(vocal, norm)
                 info = acapellabot.process_spectrogram(mashup,
                                                        config.get_channels())
-                newSpectrogram = info[1]
-                mse = ((newSpectrogram - vocal)**2).mean()
+                new_spectrogram = info[1]
+                mse = ((new_spectrogram - vocal)**2).mean()
                 mses.append(mse)
                 print(track, mse)
             print(np.mean(mses))
         else:
-            vocal_audio, _ = conversion.loadAudioFile(vocal_file)
-            processed_audio, _ = conversion.loadAudioFile(processed_file)
+            vocal_audio, _ = conversion.load_audio_file(vocal_file)
+            processed_audio, _ = conversion.load_audio_file(processed_file)
 
             # make sure audios have the same length
             vocal_audio = vocal_audio[:processed_audio.shape[0]]
@@ -238,13 +232,13 @@ class Analysis:
         acapellabot = AcapellaBot(config)
         acapellabot.loadWeights(config.weights)
 
-        instrumental_audio, _ = conversion.loadAudioFile(instrumental_file)
-        vocal_audio, _ = conversion.loadAudioFile(vocal_file)
+        instrumental_audio, _ = conversion.load_audio_file(instrumental_file)
+        vocal_audio, _ = conversion.load_audio_file(vocal_file)
 
-        instrumental = conversion.audioFileToSpectrogram(
+        instrumental = conversion.audio_file_to_spectrogram(
             instrumental_audio, fftWindowSize=config.fft,
             learn_phase=self.config.learn_phase)
-        vocal = conversion.audioFileToSpectrogram(
+        vocal = conversion.audio_file_to_spectrogram(
             vocal_audio, fftWindowSize=config.fft,
             learn_phase=self.config.learn_phase)
         h5file = h5py.File("volume.hdf5", "w")
@@ -260,8 +254,8 @@ class Analysis:
         acapella, _ = normalize(vocal, norm)
         info = acapellabot.process_spectrogram(mashup,
                                                config.get_channels())
-        newSpectrogram = denormalize(info[1], norm)
-        mse = ((newSpectrogram - vocal)**2).mean()
+        new_spectrogram = denormalize(info[1], norm)
+        mse = ((new_spectrogram - vocal)**2).mean()
         y = [mse for _ in x]
         plt.loglog(x, y, label="baseline")
         h5file.create_dataset(name="baseline", data=y)
@@ -277,11 +271,11 @@ class Analysis:
             acapella, _ = normalize(i * vocal, norm)
             info = acapellabot.process_spectrogram(mashup,
                                                    config.get_channels())
-            newSpectrogram = denormalize(info[1], norm)
+            new_spectrogram = denormalize(info[1], norm)
             if i != 0:
-                newSpectrogram = newSpectrogram / i
+                new_spectrogram = new_spectrogram / i
 
-            mse = ((newSpectrogram - vocal)**2).mean()
+            mse = ((new_spectrogram - vocal)**2).mean()
             y.append(mse)
             print(mse)
         plt.loglog(x, y, label="scaled")

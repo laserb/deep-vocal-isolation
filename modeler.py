@@ -21,14 +21,14 @@ class Modeler(object):
 
     def acapellabot(self):
         mashup = Input(shape=(None, None, self.channels), name='input')
-        convA = Conv2D(64, 3, activation='relu', padding='same')(mashup)
+        conv_a = Conv2D(64, 3, activation='relu', padding='same')(mashup)
         conv = Conv2D(64, 4, strides=2, activation='relu',
-                      padding='same', use_bias=False)(convA)
+                      padding='same', use_bias=False)(conv_a)
         conv = BatchNormalization()(conv)
 
-        convB = Conv2D(64, 3, activation='relu', padding='same')(conv)
+        conv_b = Conv2D(64, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(64, 4, strides=2, activation='relu',
-                      padding='same', use_bias=False)(convB)
+                      padding='same', use_bias=False)(conv_b)
         conv = BatchNormalization()(conv)
 
         conv = Conv2D(128, 3, activation='relu', padding='same')(conv)
@@ -37,14 +37,14 @@ class Modeler(object):
         conv = BatchNormalization()(conv)
         conv = UpSampling2D((2, 2))(conv)
 
-        conv = Concatenate()([conv, convB])
+        conv = Concatenate()([conv, conv_b])
         conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(64, 3, activation='relu',
                       padding='same', use_bias=False)(conv)
         conv = BatchNormalization()(conv)
         conv = UpSampling2D((2, 2))(conv)
 
-        conv = Concatenate()([conv, convA])
+        conv = Concatenate()([conv, conv_a])
         conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(64, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(32, 3, activation='relu', padding='same')(conv)
@@ -57,21 +57,21 @@ class Modeler(object):
         mashup = Input(shape=(None, None, self.channels), name='input')
         dropout = Dropout(rate)(mashup)
 
-        convA = Conv2D(64, 3, padding='same')(dropout)
-        convA = LeakyReLU(alpha=alpha1)(convA)
-        convA = Dropout(rate)(convA)
+        conv_a = Conv2D(64, 3, padding='same')(dropout)
+        conv_a = LeakyReLU(alpha=alpha1)(conv_a)
+        conv_a = Dropout(rate)(conv_a)
 
-        conv = Conv2D(64, 4, strides=2, padding='same', use_bias=False)(convA)
+        conv = Conv2D(64, 4, strides=2, padding='same', use_bias=False)(conv_a)
         conv = LeakyReLU(alpha=alpha1)(conv)
         conv = Dropout(rate)(conv)
 
         conv = BatchNormalization()(conv)
 
-        convB = Conv2D(64, 3, padding='same')(conv)
-        convB = LeakyReLU(alpha=alpha1)(convB)
-        convB = Dropout(rate)(convB)
+        conv_b = Conv2D(64, 3, padding='same')(conv)
+        conv_b = LeakyReLU(alpha=alpha1)(conv_b)
+        conv_b = Dropout(rate)(conv_b)
 
-        conv = Conv2D(64, 4, strides=2, padding='same', use_bias=False)(convB)
+        conv = Conv2D(64, 4, strides=2, padding='same', use_bias=False)(conv_b)
         conv = LeakyReLU(alpha=alpha1)(conv)
         conv = Dropout(rate)(conv)
 
@@ -88,7 +88,7 @@ class Modeler(object):
         conv = BatchNormalization()(conv)
         conv = UpSampling2D((2, 2))(conv)
 
-        conv = Concatenate()([conv, convB])
+        conv = Concatenate()([conv, conv_b])
 
         conv = Conv2D(64, 3, padding='same')(conv)
         conv = LeakyReLU(alpha=alpha1)(conv)
@@ -101,7 +101,7 @@ class Modeler(object):
         conv = BatchNormalization()(conv)
         conv = UpSampling2D((2, 2))(conv)
 
-        conv = Concatenate()([conv, convA])
+        conv = Concatenate()([conv, conv_a])
 
         conv = Conv2D(64, 3, padding='same')(conv)
         conv = LeakyReLU(alpha=alpha2)(conv)
