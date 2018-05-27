@@ -73,7 +73,11 @@ class Analysis:
                     v = np.percentile(t[:, :, 1], i)
                     y_imag[i].append(v-median_imag)
 
-            h5f = h5py.File("ir-percentile-%s.hdf5" % name, "w")
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            h5f_path = os.path.join(self.analysisPath,
+                                    "ir_percentile_%s.hdf5" % name)
+            h5f = h5py.File(h5f_path, "w")
             h5f.create_dataset(name="real",
                                data=y_real)
             h5f.create_dataset(name="imag",
@@ -113,7 +117,11 @@ class Analysis:
                     v = np.percentile(t, i)
                     y[i].append(v-median)
 
-            h5f = h5py.File("amp-percentile-%s.hdf5" % name, "w")
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            h5f_path = os.path.join(self.analysisPath,
+                                    "amp_percentile_%s.hdf5" % name)
+            h5f = h5py.File(h5f_path, "w")
             h5f.create_dataset(name="value",
                                data=y)
             h5f.close()
@@ -241,7 +249,12 @@ class Analysis:
         vocal = conversion.audio_file_to_spectrogram(
             vocal_audio, fftWindowSize=config.fft,
             learn_phase=self.config.learn_phase)
-        h5file = h5py.File("volume.hdf5", "w")
+
+        if not os.path.exists(self.analysisPath):
+            os.mkdir(self.analysisPath)
+        h5f_path = os.path.join(self.analysisPath,
+                                "volume.hdf5")
+        h5file = h5py.File(h5f_path, "w")
 
         ratio = 100
         x = [i/ratio for i in range(1, ratio)] + \
@@ -350,7 +363,11 @@ class Analysis:
             pass
 
         if config.learn_phase:
-            h5file = h5py.File("distribution_ir_%s.hdf5" % name, "w")
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            h5f_path = os.path.join(self.analysisPath,
+                                    "distribution_ir_%s.hdf5" % name)
+            h5file = h5py.File(h5f_path, "w")
             h5real = h5file.create_group("real")
             h5imag = h5file.create_group("imag")
 
@@ -388,7 +405,11 @@ class Analysis:
                                      "distribution_%s_ir.png" % name))
             plt.close()
         else:
-            h5file = h5py.File("distribution_amplitude_%s.hdf5" % name, "w")
+            if not os.path.exists(self.analysisPath):
+                os.mkdir(self.analysisPath)
+            h5f_path = os.path.join(self.analysisPath,
+                                    "distribution_amplitude_%s.hdf5" % name)
+            h5file = h5py.File(h5f_path, "w")
 
             plt.figure(figsize=(15, 15))
             plt.suptitle(name)
