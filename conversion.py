@@ -9,32 +9,32 @@ from matplotlib.cm import get_cmap
 import console
 
 
-def loadAudioFile(filePath):
-    audio, sampleRate = librosa.load(filePath)
-    return audio, sampleRate
+def load_audio_file(file_path):
+    audio, sample_rate = librosa.load(file_path)
+    return audio, sample_rate
 
 
-def saveAudioFile(audioFile, filePath, sampleRate):
-    librosa.output.write_wav(filePath, audioFile, sampleRate, norm=False)
-    console.info("Wrote audio file to", filePath)
+def save_audio_file(audio_file, file_path, sample_rate):
+    librosa.output.write_wav(file_path, audio_file, sample_rate, norm=False)
+    console.info("Wrote audio file to", file_path)
 
 
-def expandToGrid(spectrogram, gridSize, channels):
+def expand_to_grid(spectrogram, grid_size, channels):
     # crop along both axes
-    newY = ceil(spectrogram.shape[1] / gridSize) * gridSize
-    newX = ceil(spectrogram.shape[0] / gridSize) * gridSize
-    newSpectrogram = np.zeros((newX, newY, channels))
-    newSpectrogram[:spectrogram.shape[0],
-                   :spectrogram.shape[1], :] = spectrogram
-    return newSpectrogram
+    new_y = ceil(spectrogram.shape[1] / grid_size) * grid_size
+    new_x = ceil(spectrogram.shape[0] / grid_size) * grid_size
+    new_spectrogram = np.zeros((new_x, new_y, channels))
+    new_spectrogram[:spectrogram.shape[0],
+                    :spectrogram.shape[1], :] = spectrogram
+    return new_spectrogram
 
 
-def stftToAmplitude(stft):
+def stft_to_amplitude(stft):
     spectrogram = np.log1p(np.abs(stft))
     return np.array(spectrogram)[:, :, np.newaxis]
 
 
-def stftToRealAndImag(stft):
+def stft_to_real_and_imag(stft):
     real = np.real(stft)
     imag = np.imag(stft)
     spectrogram = np.zeros((stft.shape[0], stft.shape[1], 2))
@@ -43,29 +43,29 @@ def stftToRealAndImag(stft):
     return spectrogram
 
 
-def realAndImagToStft(spectrogram):
+def real_and_imag_to_stft(spectrogram):
     real = spectrogram[:, :, 0]
     imag = spectrogram[:, :, 1]
     return real + imag * 1j
 
 
-def audioFileToStft(audioFile, fftWindowSize):
-    return librosa.stft(audioFile, fftWindowSize)
+def audio_file_to_stft(audio_file, fft_window_size):
+    return librosa.stft(audio_file, fft_window_size)
 
 
-def audioFileToSpectrogram(audioFile, fftWindowSize, learn_phase=False):
-    spectrogram = audioFileToStft(audioFile, fftWindowSize)
+def audio_file_to_spectrogram(audio_file, fft_window_size, learn_phase=False):
+    spectrogram = audio_file_to_stft(audio_file, fft_window_size)
     if learn_phase:
-        return stftToRealAndImag(spectrogram)
+        return stft_to_real_and_imag(spectrogram)
     else:
-        return stftToAmplitude(spectrogram)
+        return stft_to_amplitude(spectrogram)
 
 
-def spectrogramToAudioFile(spectrogram, fftWindowSize,
-                           phaseIterations=10, learnPhase=False):
-    if learnPhase:
-        stftMatrix = realAndImagToStft(spectrogram)
-        audio = librosa.istft(stftMatrix)
+def spectrogram_to_audio_file(spectrogram, fft_window_size,
+                              phase_iterations=10, learn_phase=False):
+    if learn_phase:
+        stft_matrix = real_and_imag_to_stft(spectrogram)
+        audio = librosa.istft(stft_matrix)
     else:
         # phase reconstruction with successive approximation
         # credit to https://dsp.stackexchange.com/questions/3406/reconstruction-of-audio-signal-from-its-absolute-spectrogram/3410#3410  # noqa: E501
@@ -73,35 +73,35 @@ def spectrogramToAudioFile(spectrogram, fftWindowSize,
         spectrogram = spectrogram[:, :, 0]
 
         amplitude = np.exp(spectrogram) - 1
-        for i in range(phaseIterations):
+        for i in range(phase_iterations):
             if i == 0:
                 a = np.random.random_sample(amplitude.shape) + 1j
                 b = 2 * np.pi * np.random.random_sample(amplitude.shape)
                 reconstruction = a * b - np.pi
             else:
-                reconstruction = librosa.stft(audio, fftWindowSize)
+                reconstruction = librosa.stft(audio, fft_window_size)
             spectrum = amplitude * np.exp(1j * np.angle(reconstruction))
             audio = librosa.istft(spectrum)
     return audio
 
 
-def loadSpectrogram(filePath):
-    fileName = basename(filePath)
-    if filePath.index("sampleRate") < 0:
-        console.warn("Sample rate should be specified in file name", filePath)
-        sampleRate = 22050
+def load_spectrogram(file_path):
+    filename = basename(file_path)
+    if file_path.index("sample_rate") < 0:
+        console.warn("Sample rate should be specified in file name", file_path)
+        sample_rate = 22050
     else:
-        sampleRate = int(fileName[fileName.index(
-            "sampleRate=") + 11:fileName.index(").png")])
-    console.info("Using sample rate : " + str(sampleRate))
-    image = io.imread(filePath, as_grey=True)
-    return image / np.max(image), sampleRate
+        sample_rate = int(filename[filename.index(
+            "sample_rate=") + 11:filename.index(").png")])
+    console.info("Using sample rate : " + str(sample_rate))
+    image = io.imread(file_path, as_grey=True)
+    return image / np.max(image), sample_rate
 
 
-def saveSpectrogram(spectrogram, filePath, learnPhase=False):
-    if learnPhase:
-        spectrogram = stftToAmplitude(
-            realAndImagToStft(spectrogram))
+def save_spectrogram(spectrogram, file_path, learn_phase=False):
+    if learn_phase:
+        spectrogram = stft_to_amplitude(
+            real_and_imag_to_stft(spectrogram))
 
     spectrogram = spectrogram[:, :, 0]
 
@@ -116,57 +116,56 @@ def saveSpectrogram(spectrogram, filePath, learnPhase=False):
     with warnings.catch_warnings():
         image = cm_hot(image)
         warnings.simplefilter("ignore")
-        io.imsave(filePath, image)
-    console.log("Saved image to", filePath)
+        io.imsave(file_path, image)
+    console.log("Saved image to", file_path)
 
 
-def fileSuffix(title, **kwargs):
+def file_suffix(title, **kwargs):
     args = "".join(sorted([", " + i + "=" + str(kwargs[i]) for i in kwargs]))
     return " ({}{})".format(title, args)
 
 
-def handleAudio(filePath, args):
+def handle_audio(file_path, args):
     console.h1("Creating Spectrogram")
-    INPUT_FILE = filePath
-    INPUT_FILENAME = basename(INPUT_FILE)
+    input_filename = basename(file_path)
 
-    console.info("Attempting to read from " + INPUT_FILE)
-    audio, sampleRate = loadAudioFile(INPUT_FILE)
+    console.info("Attempting to read from " + file_path)
+    audio, sample_rate = load_audio_file(file_path)
     console.info("Max of audio file is " + str(np.max(audio)))
-    spectrogram = audioFileToSpectrogram(audio, fftWindowSize=args.fft)
-    SPECTROGRAM_FILENAME = INPUT_FILENAME + \
-        fileSuffix("Input Spectrogram", fft=args.fft,
-                   iter=args.iter, sampleRate=sampleRate) + ".png"
+    spectrogram = audio_file_to_spectrogram(audio, fft_window_size=args.fft)
+    spectrogram_filename = input_filename + \
+        file_suffix("Input Spectrogram", fft=args.fft,
+                    iter=args.iter, sample_rate=sample_rate) + ".png"
 
-    saveSpectrogram(spectrogram, SPECTROGRAM_FILENAME)
+    save_spectrogram(spectrogram, spectrogram_filename)
 
     print()
     console.wait("Saved Spectrogram; press Enter to continue...")
     print()
 
-    handleImage(SPECTROGRAM_FILENAME, args)
+    handle_image(spectrogram_filename, args)
 
 
-def handleImage(fileName, args):
+def handle_image(filename, args):
     console.h1("Reconstructing Audio from Spectrogram")
 
-    spectrogram, sampleRate = loadSpectrogram(fileName)
-    audio = spectrogramToAudioFile(
-        spectrogram, fftWindowSize=args.fft, phaseIterations=args.iter)
+    spectrogram, sample_rate = load_spectrogram(filename)
+    audio = spectrogram_to_audio_file(
+        spectrogram, fft_window_size=args.fft, phase_iterations=args.iter)
 
-    sanityCheck = audioFileToSpectrogram(audio, fftWindowSize=args.fft)
-    outname = fileName \
-        + fileSuffix("Output Spectrogram",
-                     fft=args.fft,
-                     iter=args.iter,
-                     sampleRate=sampleRate) \
+    sanity_check = audio_file_to_spectrogram(audio, fft_window_size=args.fft)
+    outname = filename \
+        + file_suffix("Output Spectrogram",
+                      fft=args.fft,
+                      iter=args.iter,
+                      sample_rate=sample_rate) \
         + ".png"
-    saveSpectrogram(sanityCheck, outname)
+    save_spectrogram(sanity_check, outname)
 
-    outname = fileName \
-        + fileSuffix("Output", fft=args.fft, iter=args.iter) \
-        + ".wav", sampleRate
-    saveAudioFile(audio, outname)
+    outname = filename \
+        + file_suffix("Output", fft=args.fft, iter=args.iter) \
+        + ".wav", sample_rate
+    save_audio_file(audio, outname)
 
 
 if __name__ == "__main__":
@@ -185,6 +184,6 @@ if __name__ == "__main__":
 
     for f in args.files:
         if (f.endswith(".mp3") or f.endswith(".wav")):
-            handleAudio(f, args)
+            handle_audio(f, args)
         elif (f.endswith(".png")):
-            handleImage(f, args)
+            handle_image(f, args)

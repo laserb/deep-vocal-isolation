@@ -1,5 +1,14 @@
 image: laserb/audio-keras-cpu
 
+stages:
+    - check
+    - test
+
+style:
+    stage: check
+    script:
+        - flake8 *.py
+
 train:
     before_script:
         - mkdir bot_data
@@ -15,13 +24,7 @@ train:
         - source envs/ci
         - python3 ./acapellabot.py
 
-analyse_slices:
-    before_script:
-        - sox -n -r 16000 -b 16 "test.wav" synth 3 sine 500 sine 700
-    script:
-        - python3 ./analysis.py --analyse slices test.wav
-
-analyse_naive_solutions:
+analyse_distribution:
     before_script:
         - mkdir bot_data
         - sox -n -r 16000 -b 16 "bot_data/test_instrumental.wav" synth 3 sine 500
@@ -32,4 +35,17 @@ analyse_naive_solutions:
         - sox -n -r 16000 -b 16 "bot_data/test2_all.wav" synth 3 sine 500 sine 700
     script:
         - export DATA="bot_data"
-        - python3 ./analysis.py --analyse naive_solutions
+        - python3 ./analysis.py --analyse distribution
+
+analyse_percentile:
+    before_script:
+        - mkdir bot_data
+        - sox -n -r 16000 -b 16 "bot_data/test_instrumental.wav" synth 3 sine 500
+        - sox -n -r 16000 -b 16 "bot_data/test_acapella.wav" synth 3 sine 700
+        - sox -n -r 16000 -b 16 "bot_data/test_all.wav" synth 3 sine 500 sine 700
+        - sox -n -r 16000 -b 16 "bot_data/test2_instrumental.wav" synth 3 sine 500
+        - sox -n -r 16000 -b 16 "bot_data/test2_acapella.wav" synth 3 sine 700
+        - sox -n -r 16000 -b 16 "bot_data/test2_all.wav" synth 3 sine 500 sine 700
+    script:
+        - export DATA="bot_data"
+        - python3 ./analysis.py --analyse percentile
