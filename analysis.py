@@ -50,7 +50,7 @@ class Analysis:
 
         self._do_percentile(data, data.mashup, "Mashup")
         self._do_percentile(data, data.instrumental, "Instrumental")
-        self._do_percentile(data, data.acapella, "Acapella")
+        self._do_percentile(data, data.vocal, "Vocal")
 
     def _do_percentile(self, data, spectrograms, name):
 
@@ -186,7 +186,7 @@ class Analysis:
                                                              config.fft,
                                                              config.phase)
 
-            clean_filepath = filepath.replace("_all.wav", "_acapella.wav")
+            clean_filepath = filepath.replace("_all.wav", "_vocal.wav")
             clean, sampling_rate = librosa.load(clean_filepath)
         else:
             # A clean file is given.
@@ -214,7 +214,7 @@ class Analysis:
             mses = []
             for track in data.validation_tracks + data.test_tracks:
                 mashup = data.prepare_spectrogram(data.mashup[track])
-                vocal = data.prepare_spectrogram(data.acapella[track])
+                vocal = data.prepare_spectrogram(data.vocal[track])
                 mashup, norm = normalize(mashup)
                 vocal, _ = normalize(vocal, norm)
                 info = vocal_isolation.\
@@ -242,7 +242,7 @@ class Analysis:
         normalize = normalizer.get(both=False)
         denormalize = normalizer.get_reverse()
 
-        vocal_file = filepath.replace("_all.wav", "_acapella.wav")
+        vocal_file = filepath.replace("_all.wav", "_vocal.wav")
         instrumental_file = filepath.replace("_all.wav", "_instrumental.wav")
 
         vocal_isolation = VocalIsolation(config)
@@ -272,7 +272,6 @@ class Analysis:
 
         print("Unscaled original mix")
         mashup, norm = normalize(instrumental + vocal)
-        acapella, _ = normalize(vocal, norm)
         info = vocal_isolation.process_spectrogram(mashup,
                                                    config.get_channels())
         new_spectrogram = denormalize(info[1], norm)
@@ -289,7 +288,6 @@ class Analysis:
         y = []
         for i in x:
             mashup, norm = normalize(instrumental + i * vocal)
-            acapella, _ = normalize(i * vocal, norm)
             info = vocal_isolation.process_spectrogram(mashup,
                                                        config.get_channels())
             new_spectrogram = denormalize(info[1], norm)
@@ -316,7 +314,7 @@ class Analysis:
 
         self._do_distribution(data, data.mashup, "Mashup")
         self._do_distribution(data, data.instrumental, "Instrumental")
-        self._do_distribution(data, data.acapella, "Acapella")
+        self._do_distribution(data, data.vocal, "Vocal")
 
     def _do_distribution_plot(self, pbar, h5f, data, spectrograms,
                               bin_range, part, prefix=""):

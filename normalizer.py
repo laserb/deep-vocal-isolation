@@ -26,13 +26,13 @@ class Normalizer(object):
         else:
             params = {}
         if both:
-            def normalize_all(in_mashup, in_acapella):
+            def normalize_all(in_mashup, in_vocal):
                 mashup = copy.deepcopy(in_mashup)
-                acapella = copy.deepcopy(in_acapella)
+                vocal = copy.deepcopy(in_vocal)
                 for i in range(len(mashup)):
                     mashup[i], norm = function(mashup[i], **params)
-                    acapella[i], _ = function(acapella[i], norm=norm, **params)
-                return mashup, acapella
+                    vocal[i], _ = function(vocal[i], norm=norm, **params)
+                return mashup, vocal
             return normalize_all
         else:
             def normalize(matrix, norm=None):
