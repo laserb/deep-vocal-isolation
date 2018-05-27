@@ -1,5 +1,14 @@
 image: laserb/audio-keras-cpu
 
+stages:
+    - check
+    - test
+
+style:
+    stage: check
+    script:
+        - flake8 *.py
+
 train:
     before_script:
         - mkdir bot_data
@@ -15,7 +24,7 @@ train:
         - source envs/ci
         - python3 ./acapellabot.py
 
-analyse_histogram:
+analyse_distribution:
     before_script:
         - mkdir bot_data
         - sox -n -r 16000 -b 16 "bot_data/test_instrumental.wav" synth 3 sine 500
@@ -26,7 +35,7 @@ analyse_histogram:
         - sox -n -r 16000 -b 16 "bot_data/test2_all.wav" synth 3 sine 500 sine 700
     script:
         - export DATA="bot_data"
-        - python3 ./analysis.py --analyse histogram
+        - python3 ./analysis.py --analyse distribution
 
 analyse_percentile:
     before_script:
