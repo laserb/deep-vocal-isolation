@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Checkpointer class
+
+Provides checkpoint hooks to be used by keras
+
+"""
+
 import datetime
 from keras.callbacks import ModelCheckpoint, TensorBoard, \
     Callback, EarlyStopping

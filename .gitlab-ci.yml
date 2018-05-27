@@ -22,7 +22,7 @@ train:
     script:
         - export DATA="bot_data"
         - source envs/ci
-        - python3 ./acapellabot.py
+        - python3 ./vocal_isolation.py
 
 analyse_distribution:
     before_script:

@@ -1,18 +1,16 @@
 #!/usr/bin/python3
 """
-Acapella extraction with a CNN
+VocalIsolation class
 
-Typical usage:
-    python acapellabot.py song.wav
-    => Extracts acapella from <song.wav>
-       to <song (Acapella Attempt).wav> using default weights
+Main entry point of the application
 
-    python acapellabot.py --data input_folder \
-            --batch 32 --weights new_model_iteration.h5
-    => Trains a new model based on song/acapella pairs
-       in the folder <input_folder>
-       and saves weights to <new_model_iteration.h5> once complete.
-       See data.py for data specifications.
+Two main usages:
+
+    python3 vocal_isolation.py
+    => executes a training using the configurations in Config
+
+    python3 vocal_isolation.py song.wav
+    => isolates vocal from 'song.wav'
 """
 
 import random
@@ -39,7 +37,7 @@ from normalizer import Normalizer
 from batch import Batch
 
 
-class AcapellaBot:
+class VocalIsolation:
     def __init__(self, config):
         self.config = config
         metrics = Metrics().get()
@@ -150,7 +148,7 @@ class AcapellaBot:
 
     def process_spectrogram(self, spectrogram, channels=1):
         chopper = Chopper()
-        chopper.name = "infere"
+        chopper.name = "infer"
         chopper.params = "{'scale': %d}" % self.config.inference_slice
         chop = chopper.get(both=False)
 
@@ -186,8 +184,8 @@ class AcapellaBot:
         console.log("Processed spectrogram")
         return spectrogram, new_spectrogram
 
-    def isolate_vocals(self, path, fft_window_size, phase_iterations=10,
-                       learn_phase=False, channels=1):
+    def infer(self, path, fft_window_size, phase_iterations=10,
+              learn_phase=False, channels=1):
         console.log("Attempting to isolate vocals from", path)
         audio, sample_rate = conversion.load_audio_file(path)
         spectrogram = conversion.audio_file_to_spectrogram(
@@ -248,11 +246,11 @@ class AcapellaBot:
         conversion.save_spectrogram(spectrogram, output_filename_base + ".png")
 
 
-def get_signal_handler(acapellabot):
+def get_signal_handler(vocal_isolation):
     def signal_handler(signal, frame):
         save = input("Should we save intermediate weights [y/n]? ")
         if not save.lower().startswith("n"):
-            acapellabot.save_weights(acapellabot.config.weights)
+            vocal_isolation.save_weights(vocal_isolation.config.weights)
         sys.exit(0)
     return signal_handler
 
@@ -262,7 +260,7 @@ if __name__ == "__main__":
     config_str = str(config)
     print(config_str)
 
-    acapellabot = AcapellaBot(config)
+    vocal_isolation = VocalIsolation(config)
 
     if len(files) == 0 and config.data:
         console.log("No files provided; attempting to train on " +
@@ -274,22 +272,22 @@ if __name__ == "__main__":
             exit(1)
         if config.load:
             console.h1("Loading Weights")
-            acapellabot.load_weights(config.weights)
+            vocal_isolation.load_weights(config.weights)
         console.h1("Loading Data")
         data = Data()
         console.h1("Training Model")
-        signal.signal(signal.SIGINT, get_signal_handler(acapellabot))
-        acapellabot.run(data)
+        signal.signal(signal.SIGINT, get_signal_handler(vocal_isolation))
+        vocal_isolation.run(data)
     elif len(files) > 0:
         console.log("Weights provided; performing inference on " +
                     str(files) + "...")
         console.h1("Loading weights")
-        acapellabot.load_weights(config.weights)
+        vocal_isolation.load_weights(config.weights)
         for f in files:
-            acapellabot.isolate_vocals(f, config.fft,
-                                       config.phase_iterations,
-                                       config.learn_phase,
-                                       config.get_channels())
+            vocal_isolation.infer(f, config.fft,
+                                  config.phase_iterations,
+                                  config.learn_phase,
+                                  config.get_channels())
     else:
         console.error(
             "Please provide data to train on (--data) or files to infer on")

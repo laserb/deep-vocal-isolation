@@ -1,3 +1,9 @@
+#!/usr/bin/python3
+"""
+Utilities to convert wav files to spectrograms and back
+
+"""
+
 import librosa
 import numpy as np
 import warnings

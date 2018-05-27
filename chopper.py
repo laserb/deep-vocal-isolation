@@ -211,7 +211,7 @@ class Chopper(object):
 
         return mashup_slices, acapella_slices
 
-    def infere(self, matrix, scale, **kwargs):
+    def infer(self, matrix, scale, **kwargs):
         slices = []
         for time in range(0, matrix.shape[1] // scale + 1):
             s = matrix[0:, time * scale: (time + 1) * scale, :]

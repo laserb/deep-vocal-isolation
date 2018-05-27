@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Optimizer class
+
+Provides different optimizers to be used by keras
+
+"""
+
 from config import config
 from keras.optimizers import Adam, RMSprop
 

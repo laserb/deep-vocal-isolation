@@ -1,8 +1,9 @@
+#!/usr/bin/python3
 """
-Loads and stores mashup data given a folder full of acapellas and instrumentals
-Assumes that all audio clips (wav, mp3) in the folder
-a) have "acapella" in the filename if they're an acapella
-b) have "instrumental" in the filename if they're an instrumentalü
+Data class
+
+Utility class for data preparation
+
 """
 import sys
 import os

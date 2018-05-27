@@ -1,6 +1,7 @@
+#!/usr/bin/python3
 """
 Various utilities for pretty console output
-Ported nigh-verbatim from a similar file I use for node
+
 """
 import time as sysTime
 

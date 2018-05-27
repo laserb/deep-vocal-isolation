@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Normalizer class
+
+Providides normalization functionalities to be used for data preparation
+
+"""
+
 import numpy as np
 import copy
 from hashlib import md5

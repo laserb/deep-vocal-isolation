@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Metrics class
+
+Provides different metrics to be used by keras
+
+"""
+
 import keras.backend as K
 from config import config
 

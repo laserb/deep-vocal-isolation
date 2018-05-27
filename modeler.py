@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Modeler class
+
+Provides keras models to be trained
+
+"""
+
 from keras.models import Model
 from keras.layers import Input, Dropout, Conv2D, BatchNormalization, \
         UpSampling2D, Concatenate, LeakyReLU
