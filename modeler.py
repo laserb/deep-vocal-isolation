@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Modeler class
+
+Provides keras models to be trained
+
+"""
+
 from keras.models import Model
 from keras.layers import Input, Dropout, Conv2D, BatchNormalization, \
         UpSampling2D, Concatenate, LeakyReLU
@@ -50,8 +57,8 @@ class Modeler(object):
         conv = Conv2D(32, 3, activation='relu', padding='same')(conv)
         conv = Conv2D(self.channels,
                       3, activation='relu', padding='same')(conv)
-        acapella = conv
-        return Model(inputs=mashup, outputs=acapella)
+        vocal = conv
+        return Model(inputs=mashup, outputs=vocal)
 
     def leaky_dropout(self, alpha1, alpha2, rate):
         mashup = Input(shape=(None, None, self.channels), name='input')
@@ -119,5 +126,5 @@ class Modeler(object):
         if not self.config.learn_phase:
             conv = LeakyReLU(alpha=alpha2)(conv)
 
-        acapella = conv
-        return Model(inputs=mashup, outputs=acapella)
+        vocal = conv
+        return Model(inputs=mashup, outputs=vocal)

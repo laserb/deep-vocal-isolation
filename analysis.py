@@ -1,4 +1,12 @@
 #!/usr/bin/python3
+"""
+Analysis class
+
+Provides analysis functionalities
+
+"""
+
+
 import argparse
 import os
 import numpy as np
@@ -10,7 +18,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
 import conversion  # noqa: E402
-from acapellabot import AcapellaBot  # noqa: E402
+from vocal_isolation import VocalIsolation  # noqa: E402
 from data import Data  # noqa: E402
 from normalizer import Normalizer  # noqa: E402
 
@@ -42,7 +50,7 @@ class Analysis:
 
         self._do_percentile(data, data.mashup, "Mashup")
         self._do_percentile(data, data.instrumental, "Instrumental")
-        self._do_percentile(data, data.acapella, "Acapella")
+        self._do_percentile(data, data.vocal, "Vocal")
 
     def _do_percentile(self, data, spectrograms, name):
 
@@ -154,8 +162,8 @@ class Analysis:
         if clean_filepath is None:
             # No clean file given.
             # Get processed and clean file from mashup.
-            acapellabot = AcapellaBot(config)
-            acapellabot.loadWeights(config.weights)
+            vocal_isolation = VocalIsolation(config)
+            vocal_isolation.loadWeights(config.weights)
             audio, sampleRate = conversion.load_audio_file(filepath)
             spectrogram = conversion.audio_file_to_spectrogram(
                 audio, fftWindowSize=config.fft,
@@ -168,8 +176,8 @@ class Analysis:
             # normalize
             spectogram, norm = normalize(spectrogram)
 
-            info = acapellabot.process_spectrogram(spectrogram,
-                                                   config.get_channels())
+            info = vocal_isolation.process_spectrogram(spectrogram,
+                                                       config.get_channels())
             spectrogram, new_spectrogram = info
             # de-normalize
             new_spectrogram = denormalize(new_spectrogram, norm)
@@ -178,7 +186,7 @@ class Analysis:
                                                              config.fft,
                                                              config.phase)
 
-            clean_filepath = filepath.replace("_all.wav", "_acapella.wav")
+            clean_filepath = filepath.replace("_all.wav", "_vocal.wav")
             clean, sampling_rate = librosa.load(clean_filepath)
         else:
             # A clean file is given.
@@ -200,17 +208,17 @@ class Analysis:
         normalizer = Normalizer()
         normalize = normalizer.get(both=False)
         if processed_file is None:
-            acapellabot = AcapellaBot(config)
-            acapellabot.loadWeights(config.weights)
+            vocal_isolation = VocalIsolation(config)
+            vocal_isolation.loadWeights(config.weights)
             data = Data()
             mses = []
             for track in data.validation_tracks + data.test_tracks:
                 mashup = data.prepare_spectrogram(data.mashup[track])
-                vocal = data.prepare_spectrogram(data.acapella[track])
+                vocal = data.prepare_spectrogram(data.vocal[track])
                 mashup, norm = normalize(mashup)
                 vocal, _ = normalize(vocal, norm)
-                info = acapellabot.process_spectrogram(mashup,
-                                                       config.get_channels())
+                info = vocal_isolation.\
+                    process_spectrogram(mashup, config.get_channels())
                 new_spectrogram = info[1]
                 mse = ((new_spectrogram - vocal)**2).mean()
                 mses.append(mse)
@@ -234,11 +242,11 @@ class Analysis:
         normalize = normalizer.get(both=False)
         denormalize = normalizer.get_reverse()
 
-        vocal_file = filepath.replace("_all.wav", "_acapella.wav")
+        vocal_file = filepath.replace("_all.wav", "_vocal.wav")
         instrumental_file = filepath.replace("_all.wav", "_instrumental.wav")
 
-        acapellabot = AcapellaBot(config)
-        acapellabot.loadWeights(config.weights)
+        vocal_isolation = VocalIsolation(config)
+        vocal_isolation.loadWeights(config.weights)
 
         instrumental_audio, _ = conversion.load_audio_file(instrumental_file)
         vocal_audio, _ = conversion.load_audio_file(vocal_file)
@@ -264,9 +272,8 @@ class Analysis:
 
         print("Unscaled original mix")
         mashup, norm = normalize(instrumental + vocal)
-        acapella, _ = normalize(vocal, norm)
-        info = acapellabot.process_spectrogram(mashup,
-                                               config.get_channels())
+        info = vocal_isolation.process_spectrogram(mashup,
+                                                   config.get_channels())
         new_spectrogram = denormalize(info[1], norm)
         mse = ((new_spectrogram - vocal)**2).mean()
         y = [mse for _ in x]
@@ -281,9 +288,8 @@ class Analysis:
         y = []
         for i in x:
             mashup, norm = normalize(instrumental + i * vocal)
-            acapella, _ = normalize(i * vocal, norm)
-            info = acapellabot.process_spectrogram(mashup,
-                                                   config.get_channels())
+            info = vocal_isolation.process_spectrogram(mashup,
+                                                       config.get_channels())
             new_spectrogram = denormalize(info[1], norm)
             if i != 0:
                 new_spectrogram = new_spectrogram / i
@@ -308,7 +314,7 @@ class Analysis:
 
         self._do_distribution(data, data.mashup, "Mashup")
         self._do_distribution(data, data.instrumental, "Instrumental")
-        self._do_distribution(data, data.acapella, "Acapella")
+        self._do_distribution(data, data.vocal, "Vocal")
 
     def _do_distribution_plot(self, pbar, h5f, data, spectrograms,
                               bin_range, part, prefix=""):

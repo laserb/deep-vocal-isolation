@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+Loss class
+
+Provides different loss functions to be used by keras
+
+"""
+
 from keras import losses
 from config import config
 

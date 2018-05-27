@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+GridSearch class
+
+Provides the possibility to run multiple configurations from a .yml file
+
+"""
+
 import yaml
 import csv
 import sys
@@ -10,10 +17,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 import console  # noqa: E402
 from config import config  # noqa: E402
 from data import Data  # noqa: E402
-from acapellabot import AcapellaBot  # noqa: E402
+from vocal_isolation import VocalIsolation  # noqa: E402
 
 
-class MatrixRunner(object):
+class GridSearch(object):
     def __init__(self, config_path):
         self.config_path = config_path
         self.config = config
@@ -51,8 +58,8 @@ class MatrixRunner(object):
     def train(self, current_config):
         ix = current_config.pop("ix")
         self.ids.append(ix)
-        acapellabot = AcapellaBot(self.config)
-        history = acapellabot.run(self.train_data)
+        vocal_isolation = VocalIsolation(self.config)
+        history = vocal_isolation.run(self.train_data)
         metrics = [history.history["val_" + name][-1]
                    for name in self.metric_names]
         self.plt_loss.plot(history.history['loss'])
@@ -106,5 +113,5 @@ if __name__ == "__main__":
         path = sys.argv[1]
     else:
         path = "grid-search.yml"
-    runner = MatrixRunner(path)
+    runner = GridSearch(path)
     runner.run()

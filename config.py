@@ -1,4 +1,13 @@
 #!/usr/bin/python3
+"""
+Config class (singleton)
+
+Provides all the configurations to be used by the application
+    => use environment variables or set the values directly
+
+"""
+
+
 import os
 from hashlib import md5
 import datetime

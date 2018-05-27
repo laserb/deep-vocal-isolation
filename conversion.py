@@ -1,3 +1,9 @@
+#!/usr/bin/python3
+"""
+Utilities to convert wav files to spectrograms and back
+
+"""
+
 import librosa
 import numpy as np
 import warnings
@@ -169,7 +175,7 @@ def handle_image(filename, args):
 
 
 if __name__ == "__main__":
-    # Test code for experimenting with modifying acapellas in image processors
+    # Test code for experimenting with modifying vocals in image processors
     # (and generally testing the reconstruction pipeline)
     parser = argparse.ArgumentParser(
         description="Convert image files to audio and audio files to images")

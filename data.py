@@ -1,8 +1,9 @@
+#!/usr/bin/python3
 """
-Loads and stores mashup data given a folder full of acapellas and instrumentals
-Assumes that all audio clips (wav, mp3) in the folder
-a) have "acapella" in the filename if they're an acapella
-b) have "instrumental" in the filename if they're an instrumentalü
+Data class
+
+Utility class for data preparation
+
 """
 import sys
 import os
@@ -31,7 +32,7 @@ class Data:
         self.training_split = self.config.split
         self.is_instrumental = self.config.instrumental
         self.mashup = {}
-        self.acapella = {}
+        self.vocal = {}
         self.instrumental = {}
         self.track_names = []
 
@@ -96,7 +97,7 @@ class Data:
             if self.is_instrumental:
                 y.append(self.instrumental[track])
             else:
-                y.append(self.acapella[track])
+                y.append(self.vocal[track])
 
         x = [self.prepare_spectrogram(s) for s in x]
         y = [self.prepare_spectrogram(s) for s in y]
@@ -123,7 +124,7 @@ class Data:
             if self.is_instrumental:
                 y.append(self.instrumental[track])
             else:
-                y.append(self.acapella[track])
+                y.append(self.vocal[track])
 
         x = [self.prepare_spectrogram(s) for s in x]
         y = [self.prepare_spectrogram(s) for s in y]
@@ -148,12 +149,12 @@ class Data:
         if os.path.isfile(h5_path):
             h5f = h5py.File(h5_path, "r")
             mashup = h5f["mashup"]
-            acapella = h5f["acapella"]
+            vocal = h5f["vocal"]
             instrumental = h5f["instrumental"]
             self.track_names = [name.decode("utf8")
                                 for name in h5f["names"]["track"]]
             self.mashup = dict(mashup)
-            self.acapella = dict(acapella)
+            self.vocal = dict(vocal)
             self.instrumental = dict(instrumental)
         else:
             for dirPath, dirNames, file_names in os.walk(self.in_path):
@@ -161,11 +162,11 @@ class Data:
                 for file_name in filtered_files:
                     name = file_name.replace("_all.wav", "")
                     file_name = os.path.join(self.in_path, file_name)
-                    acapella_file = file_name.replace("_all.wav",
-                                                      "_acapella.wav")
+                    vocal_file = file_name.replace("_all.wav",
+                                                   "_vocal.wav")
                     instrumental_file = file_name.replace("_all.wav",
                                                           "_instrumental.wav")
-                    if not all([os.path.exists(acapella_file),
+                    if not all([os.path.exists(vocal_file),
                                 os.path.exists(instrumental_file)]):
                         continue
 
@@ -175,10 +176,10 @@ class Data:
                     mashup = spectrogram
 
                     audio, sample_rate = \
-                        conversion.load_audio_file(acapella_file)
+                        conversion.load_audio_file(vocal_file)
                     spectrogram = conversion.audio_file_to_stft(
                         audio, self.fft_window_size)
-                    acapella = spectrogram
+                    vocal = spectrogram
 
                     audio, sample_rate = \
                         conversion.load_audio_file(instrumental_file)
@@ -190,7 +191,7 @@ class Data:
                                  "with shape",
                                  spectrogram.shape)
                     self.mashup[name] = mashup
-                    self.acapella[name] = acapella
+                    self.vocal[name] = vocal
                     self.instrumental[name] = instrumental
                     self.track_names.append(name)
             console.info("Created", len(self.mashup), "total spectras")
@@ -202,7 +203,7 @@ class Data:
         h5_path = self.get_data_path()
         h5f = h5py.File(h5_path, "w")
         mashup = h5f.create_group("mashup")
-        acapella = h5f.create_group("acapella")
+        vocal = h5f.create_group("vocal")
         instrumental = h5f.create_group("instrumental")
         names = h5f.create_group("names")
         track_names = [name.encode("utf8") for name in self.track_names]
@@ -210,8 +211,8 @@ class Data:
         for track in self.track_names:
             mashup.create_dataset(name=track.encode("utf8"),
                                   data=self.mashup[track])
-            acapella.create_dataset(name=track.encode("utf8"),
-                                    data=self.acapella[track])
+            vocal.create_dataset(name=track.encode("utf8"),
+                                 data=self.vocal[track])
             instrumental.create_dataset(name=track.encode("utf8"),
                                         data=self.instrumental[track])
         h5f.close()
