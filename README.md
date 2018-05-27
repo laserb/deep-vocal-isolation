@@ -5,6 +5,10 @@ To train the network the [MedleyDB](http://medleydb.weebly.com/) dataset was use
 
 ## Configuration
 The settings used for execution are configurable by either exporting the appropriate environment variables, by directly setting the values in the `Config` class or, when using the grid search, by specifying the configuration in a `.yml` file. The configuration is applied using reflection.</br>
+Some predefined configurations can be found in the `envs` directory. Source the environment file to load the configuration.</br>
+I.e. for the `lps` environment run
+>`source envs/lps`
+
 A list of available options can be found below.
 
 ## Training
@@ -24,7 +28,7 @@ After the configuration the project can be executed by invoking
 
 > `python3 vocal_isolation.py`
 
-The execution logs can be found in the `LOGS_BASE` directory.
+The execution logs can be found in the `LOG_BASE` directory.
 
 ### Learning approaches
 Two different learning approaches are available. The first one is similar to the original acapellabot using the log-power spectrograms (LPS) to train on. In this approach the phase information is lost and needs to be reconstructed using successive approximation. </br>
@@ -43,7 +47,7 @@ If no `.yml` file is specified it will use the default `grid_search.yml` contain
 After the network is trained the produced weights can be used to perform inference on a given track to isolate the vocals. As the inference is computationally expensive it is not performed on the complete file, but smaller slices. The size of such a slice can be set by `INFERENCE_SLICE`. If your computer runs out of memory while inferencing, consider reducing the slice size.</br>
 An inference can be executed by invoking
 
->`python3 vocal_isolation.py filetoinfere.wav`
+>`python3 vocal_isolation.py filetoinfer.wav`
 
 
 ## Analysis
@@ -151,7 +155,7 @@ functionalities
 * **chopper.py** different slicing functions to create samples
 * **config.py** configuration object reading environment variables
 * **console.py** class for logging
-* **conversion.py** different batch generators for training
+* **conversion.py** utility to convert audio files to spectrograms and back
 * **data.py** generates data to train on
 * **grid_search.py** performs grid search using .yml file configurations
 * **loss.py** different loss functions for training

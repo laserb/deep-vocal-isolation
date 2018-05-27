@@ -163,7 +163,7 @@ class Data:
                     name = file_name.replace("_all.wav", "")
                     file_name = os.path.join(self.in_path, file_name)
                     vocal_file = file_name.replace("_all.wav",
-                                                      "_vocal.wav")
+                                                   "_vocal.wav")
                     instrumental_file = file_name.replace("_all.wav",
                                                           "_instrumental.wav")
                     if not all([os.path.exists(vocal_file),
@@ -212,7 +212,7 @@ class Data:
             mashup.create_dataset(name=track.encode("utf8"),
                                   data=self.mashup[track])
             vocal.create_dataset(name=track.encode("utf8"),
-                                    data=self.vocal[track])
+                                 data=self.vocal[track])
             instrumental.create_dataset(name=track.encode("utf8"),
                                         data=self.instrumental[track])
         h5f.close()

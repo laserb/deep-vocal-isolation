@@ -124,7 +124,7 @@ class Chopper(object):
         for time in range(0, vocal.shape[1] // scale):
             for freq in range(0, limit // scale):
                 sa = vocal[freq * scale: (freq + 1) * scale,
-                              time * scale: (time + 1) * scale, :]
+                           time * scale: (time + 1) * scale, :]
 
                 sm = mashup[freq * scale: (freq + 1) * scale,
                             time * scale: (time + 1) * scale, :]
@@ -150,7 +150,7 @@ class Chopper(object):
         for time in range(0, vocal.shape[1] // scale):
             if upper:
                 sa = vocal[0:vocal.shape[0] // 2,
-                              time * scale: (time + 1) * scale, :]
+                           time * scale: (time + 1) * scale, :]
 
                 sm = mashup[0:mashup.shape[0] // 2,
                             time * scale: (time + 1) * scale, :]
@@ -177,7 +177,7 @@ class Chopper(object):
             random_freq = random.randrange(limit - scale)
 
             sa = vocal[random_freq: random_freq + scale,
-                          random_time: random_time + scale, :]
+                       random_time: random_time + scale, :]
 
             sm = mashup[random_freq: random_freq + scale,
                         random_time: random_time + scale, :]
@@ -198,7 +198,7 @@ class Chopper(object):
 
             if upper:
                 sa = vocal[0:vocal.shape[0] // 2,
-                              random_time: random_time + scale, :]
+                           random_time: random_time + scale, :]
 
                 sm = mashup[0:mashup.shape[0] // 2,
                             random_time: random_time + scale, :]
