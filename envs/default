@@ -29,5 +29,5 @@ export SPLIT="0.9"
 export START_EPOCH="0"
 export TENSORBOARD="./tensorboard"
 export TENSORBOARD_INFO="default"
-export WEIGHTS="weights.h5"
+export WEIGHTS="weights/weights.h5"
 
