@@ -184,7 +184,7 @@ class Analysis:
 
             processed = conversion.spectrogram_to_audio_file(new_spectrogram,
                                                              config.fft,
-                                                             config.phase)
+                                                             config.phase_iterations)
 
             clean_filepath = filepath.replace("_all.wav", "_vocal.wav")
             clean, sampling_rate = librosa.load(clean_filepath)
