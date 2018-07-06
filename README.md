@@ -3,13 +3,55 @@
 This repository provides a configurable deep convolutional neural network to isolate vocals from music written in [python3.6](https://docs.python.org/3/). It is based on the [acapellabot](https://github.com/madebyollin/acapellabot) by [madebyollin](https://github.com/madebyollin).
 To train the network the [MedleyDB](http://medleydb.weebly.com/) dataset was used.
 
+## Dependencies
+The following libraries and packages need to be installed to use this project.
+
+### Training and Inference
+
+* [tensorflow](https://www.tensorflow.org/) (Python library)
+* [keras](https://keras.io/) (Python library)
+* [librosa](http://librosa.github.io/librosa/) (Python library)
+* [h5py](https://www.h5py.org/) (Python library)
+* [numpy](http://www.numpy.org/) (Python library)
+
+
+### Analysis
+
+* [pydot](https://pypi.org/project/pydot/) (Package)
+* [graphviz](https://graphviz.readthedocs.io/en/stable/) (Package)
+* [oct2py](https://pypi.org/project/oct2py/) (Python library)
+* [tensorboard](https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard) (Python library)
+* [python3-tk](https://docs.python.org/3/library/tk.html) (Package)
+* [octave](https://www.gnu.org/software/octave/) (Package)
+* [octave-signal](https://wiki.octave.org/Signal_package) (Package)
+
+## Project Structure
+
+* **analysis.py** run different analysis
+functionalities
+* **batch.py** different batch generators for training
+* **checkpointer.py** checkpoint hooks for keras
+* **chopper.py** different slicing functions to create samples
+* **config.py** configuration object reading environment variables
+* **console.py** class for logging
+* **conversion.py** utility to convert audio files to spectrograms and back
+* **data.py** generates data to train on
+* **grid_search.py** performs grid search using .yml file configurations
+* **loss.py** different loss functions for training
+* **metrics.py** different metrics used for training
+* **modeler.py** different models to be used for training
+* **normalizer.py** different normalizer strategies for data preparation
+* **optimizer.py** different optimizers to be used for training
+* **stoi.m** matlab file to calculate the STOI
+* **vocal_isolation.py** runs the project
+
 ## Configuration
 The settings used for execution are configurable by either exporting the appropriate environment variables, by directly setting the values in the `Config` class or, when using the grid search, by specifying the configuration in a `.yml` file. The configuration is applied using reflection.</br>
 Some predefined configurations can be found in the `envs` directory. Source the environment file to load the configuration.</br>
-I.e. for the `lps` environment run
+E.g. for the `lps` environment run
 >`source envs/lps`
 
-A list of available options can be found below.
+A list of available options can be found at the end of this readme.
 
 ## Training
 
@@ -22,8 +64,8 @@ To train the network the corpus needs to contain the following files for each of
 The `DATA` needs to point to the directory where the corpus is stored.</br>
 The training split can be specified by `SPLIT`. The `Config` class also contains an option to define the validation and test tracks directly.
 The amount of epochs to train for can be set using `EPOCHS`.</br>
-The `WEIGHTS` points to the directory where the weights should be stored.
-More configuration options can be found below.</br>
+The `WEIGHTS` points to the `.h5` or `.hdf5` file in which the weights should be stored.</br>
+More configuration options can be found at the end of this readme.</br>
 After the configuration the project can be executed by invoking
 
 > `python3 vocal_isolation.py`
@@ -44,7 +86,7 @@ The grid search can be executed by invoking
 If no `.yml` file is specified it will use the default `grid_search.yml` containing all possible configurations.
 
 ## Inference
-After the network is trained the produced weights can be used to perform inference on a given track to isolate the vocals. As the inference is computationally expensive it is not performed on the complete file, but smaller slices. The size of such a slice can be set by `INFERENCE_SLICE`. If your computer runs out of memory while inferencing, consider reducing the slice size.</br>
+After the network is trained the produced weights stored in `WEIGHTS` can be used to perform inference on a given track to isolate the vocals. As the inference is computationally expensive it is not performed on the complete file, but smaller slices. The size of such a slice can be set by `INFERENCE_SLICE`. If your computer runs out of memory while inferencing, consider reducing the slice size.</br>
 An inference can be executed by invoking
 
 >`python3 vocal_isolation.py filetoinfer.wav`
@@ -63,7 +105,7 @@ If the save option is specified the results will be written to the directory giv
 The following analysis functionalities are available:
 
 ### STOI
-Calculate the stoi value
+Calculate the stoi value.
 #### Arguments
 
 * path to mix file
@@ -75,7 +117,7 @@ If both arguments are given the specified files will be used for the STOI calcul
 >`python3 analysis.py -a stoi -s myfile.wav [cleanfile.wav]`
 
 ### Percentile
-Calculate the value distributions and their difference to the median for each percentile on the whole data set located at `DATA` and creates a box plot.
+Calculate the value distributions and their difference to the median for each percentile on the whole data set located at `DATA` and create a box plot.
 
 #### Arguments
 No additional arguments are required.
@@ -90,12 +132,12 @@ Calculate the mean squared error between a processed and clean vocal file.
 * [path to processed file]
 * [path to clean vocal file]
 
-If no arguments are given the mse analysis calculates the mean squared error for each track in the validation and test set.
+If no arguments are given the MSE analysis calculates the mean squared error for each track in the validation and test set.
 
 >`python3 analysis.py -a mse -s [myprocessedvocal.wav] [cleanvocal.wav]`
 
 ### Volume
-Scales the volume between a ratio of 1/100 and 100 and calculates the mse for each ratio and plots the result.
+Scales the volume between a ratio of 1/100 and 100 and calculates the MSE for each ratio and plots the result.
 
 #### Arguments
 * path to mix file
@@ -143,47 +185,4 @@ No additional arguments required
 | START_EPOCH | Starting epoch | number >= 0 | "0"
 | TENSORBOARD | Directory to store tensorboard output | valid directory | "./tensorboard"
 | TENSORBOARD_INFO | Amount of information to be returned | full, default | "default"
-| WEIGHTS | Path to weight directory | valid directory | "weights/weights.h5"
-
-
-## Project Structure
-
-* **analysis.py** run different analysis
-functionalities
-* **batch.py** different batch generators for training
-* **checkpointer.py** checkpoint hooks for keras
-* **chopper.py** different slicing functions to create samples
-* **config.py** configuration object reading environment variables
-* **console.py** class for logging
-* **conversion.py** utility to convert audio files to spectrograms and back
-* **data.py** generates data to train on
-* **grid_search.py** performs grid search using .yml file configurations
-* **loss.py** different loss functions for training
-* **metrics.py** different metrics used for training
-* **modeler.py** different models to be used for training
-* **normalizer.py** different normalizer strategies for data preparation
-* **optimizer.py** different optimizers to be used for training
-* **stoi.m** matlab file to calculate to STOI
-* **vocal_isolation.py** runs the project
-
-## Libraries and Packages
-The following libraries and packages need to be installed to use this project.
-
-### Training and Inference
-
-* [tensorflow](https://www.tensorflow.org/) (Python library)
-* [keras](https://keras.io/) (Python library)
-* [librosa](http://librosa.github.io/librosa/) (Python library)
-* [h5py](https://www.h5py.org/) (Python library)
-* [numpy](http://www.numpy.org/) (Python library)
-
-
-### Analysis
-
-* [pydot](https://pypi.org/project/pydot/) (Package)
-* [graphviz](https://graphviz.readthedocs.io/en/stable/) (Package)
-* [oct2py](https://pypi.org/project/oct2py/) (Python library)
-* [tensorboard](https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard) (Python library)
-* [python3-tk](https://docs.python.org/3/library/tk.html) (Package)
-* [octave](https://www.gnu.org/software/octave/) (Package)
-* [octave-signal](https://wiki.octave.org/Signal_package) (Package)
+| WEIGHTS | Path to weight file | .h5 or .hdf5 file | "weights/weights.h5"
