@@ -13,12 +13,11 @@ The following libraries and packages need to be installed to use this project.
 * [librosa](http://librosa.github.io/librosa/) (Python library)
 * [h5py](https://www.h5py.org/) (Python library)
 * [numpy](http://www.numpy.org/) (Python library)
-
+* [pydot](https://pypi.org/project/pydot/) (Package)
+* [graphviz](https://graphviz.readthedocs.io/en/stable/) (Package)
 
 ### Analysis
 
-* [pydot](https://pypi.org/project/pydot/) (Package)
-* [graphviz](https://graphviz.readthedocs.io/en/stable/) (Package)
 * [oct2py](https://pypi.org/project/oct2py/) (Python library)
 * [tensorboard](https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard) (Python library)
 * [python3-tk](https://docs.python.org/3/library/tk.html) (Package)
